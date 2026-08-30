@@ -1,0 +1,10 @@
+const ServerApi = {
+  call(method, payload) {
+    return new Promise((resolve, reject) => {
+      const request = google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject);
+      payload === undefined ? request[method]() : request[method](payload);
+    });
+  }
+};

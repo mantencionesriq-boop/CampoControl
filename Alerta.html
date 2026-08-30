@@ -1,0 +1,1 @@
+<div v-if="alert.show" :class="['alert', 'alert-' + alert.type, 'alert-dismissible', 'fade', 'show']" role="alert"><strong>{{ alert.title }}</strong> {{ alert.message }}<button type="button" class="btn-close" @click="alert.show = false"></button></div>

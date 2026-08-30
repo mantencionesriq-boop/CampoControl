@@ -1,0 +1,76 @@
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+  setup() {
+    const currentTab = ref('panel');
+    const loading = ref(true);
+    const submitting = ref(false);
+    const huertos = ref([]), culturalLogs = ref([]), fitosanitarioLogs = ref([]), insumos = ref([]);
+    const configuraciones = ref([]), laboresProgramadas = ref([]);
+    const alert = ref({ show: false, type: 'success', title: '', message: '' });
+    const formHuerto = ref(AppUtils.newHuerto()), formCultural = ref(AppUtils.newCultural()), formFito = ref(AppUtils.newFitosanitario());
+    const formProgramacion = ref({ ID_Programacion: '', ID_Huerto: '', Fecha_Programada: AppUtils.today(), Tipo_Labor: '', Descripcion: '', Horas_Estimadas: 1 });
+    const formConfiguracion = ref({ ID_Configuracion: '', Categoria: 'LABOR', Nombre: '', Activo: true });
+    const otroTipoCultural = ref(''), otroProductoFito = ref(''), otroTipoProgramacion = ref('');
+    const tiposLabor = computed(() => configuraciones.value.filter(x => x.Categoria === 'LABOR' && x.Activo));
+    const productosAplicados = computed(() => configuraciones.value.filter(x => x.Categoria === 'PRODUCTO' && x.Activo));
+    const laboresOrdenadas = computed(() => [...laboresProgramadas.value].sort((a, b) => String(a.Fecha_Programada).localeCompare(String(b.Fecha_Programada))));
+    const laboresRealizadas = computed(() => laboresProgramadas.value.filter(x => x.Estado === 'Realizada').length);
+    const laboresPendientes = computed(() => laboresProgramadas.value.filter(x => x.Estado !== 'Realizada').length);
+    const fertilizacionesRealizadas = computed(() => culturalLogs.value.filter(x => x.Tipo_Labor === 'Fertilización').length);
+
+    const showAlert = (title, message, type = 'success') => { alert.value = { show: true, title, message, type }; setTimeout(() => { alert.value.show = false; }, 5000); };
+    const getHuertoNombre = id => (huertos.value.find(x => x.ID_Huerto === id) || {}).Nombre_Cliente || id;
+    const renderDashboard = () => {
+      const canvas = document.getElementById('canvasResumen');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d'), data = [
+        ['Aplicaciones', fitosanitarioLogs.value.length, '#dc3545'], ['Fertilizaciones', fertilizacionesRealizadas.value, '#198754'], ['Programadas realizadas', laboresRealizadas.value, '#0d6efd']
+      ], width = canvas.clientWidth, height = 220, max = Math.max(1, ...data.map(x => x[1]));
+      canvas.width = width; canvas.height = height; ctx.clearRect(0, 0, width, height);
+      data.forEach((item, index) => { const x = 35 + index * (width / 3), barHeight = item[1] / max * 130; ctx.fillStyle = item[2]; ctx.fillRect(x, 165 - barHeight, 95, barHeight); ctx.fillStyle = '#212529'; ctx.font = '13px Segoe UI'; ctx.fillText(String(item[1]), x + 40, 155 - barHeight); ctx.fillText(item[0], x, 192); });
+    };
+    const openTab = tab => { currentTab.value = tab; if (tab === 'panel') setTimeout(renderDashboard, 0); };
+    const loadServerData = async () => {
+      loading.value = true;
+      try {
+        const response = await ServerApi.call('getInitialData');
+        if (!response.success) throw new Error(response.error);
+        huertos.value = response.huertos; culturalLogs.value = response.culturalLogs; fitosanitarioLogs.value = response.fitosanitarioLogs; insumos.value = response.insumos;
+        configuraciones.value = response.configuraciones; laboresProgramadas.value = response.laboresProgramadas;
+        if (!formProgramacion.value.Tipo_Labor && tiposLabor.value[0]) formProgramacion.value.Tipo_Labor = tiposLabor.value[0].Nombre;
+        setTimeout(renderDashboard, 0);
+      } catch (error) { showAlert('Error del servidor', error.message || error.toString(), 'danger'); }
+      finally { loading.value = false; }
+    };
+    const submit = async (method, form, reset) => {
+      submitting.value = true;
+      try { const response = await ServerApi.call(method, form.value); if (!response.success) throw new Error(response.error); showAlert('¡Éxito!', response.message); form.value = reset(); await loadServerData(); }
+      catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); }
+      finally { submitting.value = false; }
+    };
+    const saveOtherOption = async (form, field, category, otherOption) => {
+      if (form.value[field] !== '__OTRO__') return true;
+      const name = otherOption.value.trim();
+      if (!name) throw new Error('Escriba el nombre de la nueva opción.');
+      const response = await ServerApi.call('saveConfiguracion', { Categoria: category, Nombre: name, Activo: true });
+      if (!response.success) throw new Error(response.error);
+      form.value[field] = name;
+      otherOption.value = '';
+      return true;
+    };
+    const submitHuerto = () => submit(formHuerto.value.ID_Huerto ? 'updateHuerto' : 'addHuerto', formHuerto, AppUtils.newHuerto.bind(AppUtils));
+    const submitCultural = async () => { try { await saveOtherOption(formCultural, 'Tipo_Labor', 'LABOR', otroTipoCultural); await submit(formCultural.value.ID_Labor ? 'updateBitacoraCultural' : 'addBitacoraCultural', formCultural, AppUtils.newCultural.bind(AppUtils)); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } };
+    const submitFitosanitario = async () => { try { await saveOtherOption(formFito, 'Producto_Aplicado', 'PRODUCTO', otroProductoFito); await submit(formFito.value.ID_Aplicacion ? 'updateBitacoraFitosanitaria' : 'addBitacoraFitosanitaria', formFito, AppUtils.newFitosanitario.bind(AppUtils)); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } };
+    const submitProgramacion = async () => { try { await saveOtherOption(formProgramacion, 'Tipo_Labor', 'LABOR', otroTipoProgramacion); await submit('saveLaborProgramada', formProgramacion, () => ({ ID_Programacion: '', ID_Huerto: '', Fecha_Programada: AppUtils.today(), Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1 })); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } };
+    const submitConfiguracion = () => submit('saveConfiguracion', formConfiguracion, () => ({ ID_Configuracion: '', Categoria: 'LABOR', Nombre: '', Activo: true }));
+    const editarProgramacion = record => { formProgramacion.value = { ...record }; };
+    const editarConfiguracion = record => { formConfiguracion.value = { ...record, Activo: record.Activo === true || record.Activo === 'TRUE' }; };
+    const editarHuerto = record => { formHuerto.value = { ...record }; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    const editarCultural = record => { formCultural.value = { ...record }; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    const editarFitosanitario = record => { formFito.value = { ...record }; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    const completarProgramacion = async id => { submitting.value = true; try { const response = await ServerApi.call('completeLaborProgramada', id); if (!response.success) throw new Error(response.error); showAlert('Labor realizada', response.message); await loadServerData(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
+    onMounted(loadServerData);
+    return { currentTab, loading, submitting, huertos, culturalLogs, fitosanitarioLogs, insumos, configuraciones, laboresProgramadas, formHuerto, formCultural, formFito, formProgramacion, formConfiguracion, otroTipoCultural, otroProductoFito, otroTipoProgramacion, tiposLabor, productosAplicados, laboresOrdenadas, laboresRealizadas, laboresPendientes, fertilizacionesRealizadas, alert, getHuertoNombre, loadServerData, openTab, submitHuerto, submitCultural, submitFitosanitario, submitProgramacion, submitConfiguracion, editarProgramacion, editarConfiguracion, editarHuerto, editarCultural, editarFitosanitario, completarProgramacion };
+  }
+}).mount('#app');

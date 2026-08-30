@@ -1,0 +1,14 @@
+const AppUtils = {
+  today() {
+    return new Date().toISOString().split('T')[0];
+  },
+  newHuerto() {
+    return { Nombre_Cliente: '', Ubicacion: '', Superficie_m2: '', Tipo_Huerto: 'Urbano', Fecha_Inicio: this.today(), Estado: 'Activo' };
+  },
+  newCultural() {
+    return { ID_Huerto: '', Fecha: this.today(), Tipo_Labor: 'Poda', Descripcion_Tecnica: '', Horas_Invertidas: 1 };
+  },
+  newFitosanitario() {
+    return { ID_Huerto: '', Fecha: this.today(), Problema_Objetivo: '', Producto_Aplicado: '', Dosis_Utilizada: '', Eficacia_Observada: 'En Seguimiento' };
+  }
+};

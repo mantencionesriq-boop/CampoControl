@@ -1,0 +1,8 @@
+# Archivos y carpetas locales que no pertenecen al código fuente
+.DS_Store
+Thumbs.db
+node_modules/
+.clasprc.json
+
+# Registros y archivos temporales
+*.log
