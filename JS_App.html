@@ -31,7 +31,7 @@ createApp({
     const otroTipoCultural = ref(''), otroProductoFito = ref(''), otroTipoProgramacion = ref('');
     const tiposLabor = computed(() => configuraciones.value.filter(x => x.Categoria === 'LABOR' && x.Activo));
     const productosAplicados = computed(() => configuraciones.value.filter(x => x.Categoria === 'PRODUCTO' && x.Activo));
-    const culturalHistorial = computed(() => culturalLogs.value.filter(item => String(item.Fecha) <= serverToday.value));
+    const culturalHistorial = computed(() => culturalLogs.value.filter(item => !(String(item.Fecha) > serverToday.value)));
     const calendarioLabores = computed(() => {
       const programadas = laboresProgramadas.value.map(item => ({ ...item, clave: 'PRG-' + item.ID_Programacion, origen: 'PROGRAMADA' }));
       const culturalesFuturas = culturalLogs.value
