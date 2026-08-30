@@ -94,8 +94,7 @@ createApp({
     function getEstadoCalendario(item) {
       if (item.Estado === 'Realizada') return 'REALIZADA';
       if (serverToday.value > String(item.Fecha_Programada)) return 'VENCIDA';
-      const diff = Math.ceil((new Date(item.Fecha_Programada + 'T12:00:00') - new Date(serverToday.value + 'T12:00:00')) / 86400000);
-      return !(diff > 7) ? 'PRÓXIMA' : 'PENDIENTE';
+      return 'PENDIENTE';
     }
     const getCultivos = item => Array.isArray(item.Cultivos_Tratados) ? item.Cultivos_Tratados : String(item.Cultivos_Tratados || '').split(' · ').filter(Boolean);
     const openDrawer = name => { activeDrawer.value = name; };
