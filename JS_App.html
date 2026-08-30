@@ -82,8 +82,8 @@ createApp({
       const water = Math.round(surface / 100 * volumePer100 * 100) / 100;
       return { water, loads: tank ? Math.ceil(water / tank * 100) / 100 : 0, productPerTank: Math.round(tank / 100 * dose * 100) / 100, totalProduct: Math.round(water / 100 * dose * 100) / 100 };
     });
-    const laboresRealizadas = computed(() => programacionesTemporada.value.filter(x => x.Estado === 'Realizada').length);
-    const laboresPendientes = computed(() => programacionesTemporada.value.filter(x => x.Estado !== 'Realizada').length);
+    const laboresRealizadas = computed(() => calendarioCompleto.value.filter(x => x.EstadoVista === 'REALIZADA').length);
+    const laboresPendientes = computed(() => calendarioCompleto.value.filter(x => x.EstadoVista === 'PENDIENTE').length);
     const fertilizacionesRealizadas = computed(() => culturalesTemporada.value.filter(x => x.Tipo_Labor === 'Fertilización').length);
     const huertosActivos = computed(() => huertos.value.filter(x => x.Estado === 'Activo').length);
     const totalHorasCulturales = computed(() => culturalesTemporada.value.reduce((sum, x) => sum + (Number(x.Horas_Invertidas) || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 1 }));
