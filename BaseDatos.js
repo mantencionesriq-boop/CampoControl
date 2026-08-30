@@ -11,18 +11,63 @@ function getSpreadsheet() {
   return SpreadsheetApp.getActiveSpreadsheet();
 }
 
+function withDocumentLock_(callback) {
+  var lock = LockService.getDocumentLock();
+  lock.waitLock(20000);
+  try {
+    return callback();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function cleanText_(value, field, required) {
+  var text = String(value == null ? '' : value).trim();
+  if (required && !text) throw new Error('El campo "' + field + '" es obligatorio.');
+  if (text.length > 5000) throw new Error('El campo "' + field + '" es demasiado extenso.');
+  return /^[=+\-@]/.test(text) ? "'" + text : text;
+}
+
+function cleanNumber_(value, field, minimum) {
+  var number = Number(value);
+  if (!isFinite(number) || number < minimum) throw new Error('El campo "' + field + '" no es válido.');
+  return number;
+}
+
+function cleanDate_(value, field) {
+  var text = String(value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new Error('La fecha de "' + field + '" no es válida.');
+  return text;
+}
+
+function requireOption_(value, allowed, field) {
+  if (allowed.indexOf(value) === -1) throw new Error('El valor de "' + field + '" no está permitido.');
+  return value;
+}
+
+function assertHuertoExists_(id) {
+  var huertoId = cleanText_(id, 'Huerto', true);
+  var sheet = getSpreadsheet().getSheetByName('HUERTOS');
+  var ids = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getDisplayValues() : [];
+  if (!ids.some(function(row) { return row[0] === huertoId; })) throw new Error('El huerto seleccionado no existe.');
+  return huertoId;
+}
+
 function setupDatabase() {
   try {
-    var spreadsheet = getSpreadsheet();
-    Object.keys(ESQUEMA_BASE_DATOS).forEach(function(sheetName) {
-      if (spreadsheet.getSheetByName(sheetName)) return;
-      var sheet = spreadsheet.insertSheet(sheetName);
-      var headers = ESQUEMA_BASE_DATOS[sheetName];
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
-      sheet.setFrozenRows(1);
+    return withDocumentLock_(function() {
+      var spreadsheet = getSpreadsheet();
+      if (!spreadsheet) throw new Error('El proyecto no está vinculado a una hoja de cálculo.');
+      Object.keys(ESQUEMA_BASE_DATOS).forEach(function(sheetName) {
+        if (spreadsheet.getSheetByName(sheetName)) return;
+        var sheet = spreadsheet.insertSheet(sheetName);
+        var headers = ESQUEMA_BASE_DATOS[sheetName];
+        sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
+        sheet.setFrozenRows(1);
+      });
+      seedDefaultConfiguration_(spreadsheet.getSheetByName('CONFIGURACION'));
+      return { success: true, message: 'Base de datos inicializada correctamente.' };
     });
-    seedDefaultConfiguration_(spreadsheet.getSheetByName('CONFIGURACION'));
-    return { success: true, message: 'Base de datos inicializada correctamente.' };
   } catch (error) {
     return { success: false, error: 'Error al inicializar la base de datos: ' + error.toString() };
   }
@@ -68,7 +113,8 @@ function getInitialData() {
       fitosanitarioLogs: getSheetDataAsObjects(spreadsheet.getSheetByName('BITACORA_FITOSANITARIA')),
       insumos: getSheetDataAsObjects(spreadsheet.getSheetByName('MAESTRO_INSUMOS')),
       configuraciones: getSheetDataAsObjects(spreadsheet.getSheetByName('CONFIGURACION')),
-      laboresProgramadas: getSheetDataAsObjects(spreadsheet.getSheetByName('LABORES_PROGRAMADAS'))
+      laboresProgramadas: getSheetDataAsObjects(spreadsheet.getSheetByName('LABORES_PROGRAMADAS')),
+      today: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
     };
   } catch (error) {
     return { success: false, error: 'Error al recuperar datos del servidor: ' + error.toString() };

@@ -1,4 +1,1 @@
-<header class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom bg-white p-3 rounded shadow-sm">
-  <div><h1 class="h3 mb-0 text-success fw-bold"><i class="bi bi-flower2 me-2"></i>MANTENCIONES RIQ SPA</h1><small class="text-muted">Bitácora Técnica de Huertos Urbanos y Manejos Fitosanitarios</small></div>
-  <button @click="loadServerData" class="btn btn-outline-success btn-sm" :disabled="loading"><i class="bi bi-arrow-clockwise me-1" :class="{ spin: loading }"></i> Actualizar</button>
-</header>
+<header class="topbar"><div><div class="page-eyebrow">Control agrícola</div><h1 class="page-title">{{ pageMeta.title }}</h1><p class="page-subtitle">{{ pageMeta.subtitle }}</p></div><button @click="loadServerData" class="btn btn-outline-success" :disabled="loading" title="Actualizar datos"><i class="bi bi-arrow-clockwise me-1" :class="{ spin: loading }"></i> Actualizar</button></header>

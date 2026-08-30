@@ -4,12 +4,15 @@ function saveLaborProgramada(data) {
     if (data.ID_Programacion) {
       return updateRecord_('LABORES_PROGRAMADAS', 'ID_Programacion', data.ID_Programacion, data);
     }
-    getSpreadsheet().getSheetByName('LABORES_PROGRAMADAS').appendRow([
-      'PRG-' + Utilities.getUuid().slice(0, 8).toUpperCase(), data.ID_Huerto,
-      data.Fecha_Programada, data.Tipo_Labor, data.Descripcion,
-      data.Horas_Estimadas, 'Programada', ''
-    ]);
-    return { success: true, message: 'Labor programada correctamente.' };
+    return withDocumentLock_(function() {
+      getSpreadsheet().getSheetByName('LABORES_PROGRAMADAS').appendRow([
+        'PRG-' + Utilities.getUuid().slice(0, 8).toUpperCase(), assertHuertoExists_(data.ID_Huerto),
+        cleanDate_(data.Fecha_Programada, 'Fecha programada'), cleanText_(data.Tipo_Labor, 'Tipo de labor', true),
+        cleanText_(data.Descripcion, 'Detalle', false), cleanNumber_(data.Horas_Estimadas, 'Horas estimadas', 0),
+        'Programada', ''
+      ]);
+      return { success: true, message: 'Labor programada correctamente.' };
+    });
   } catch (error) {
     return { success: false, error: 'Error al programar la labor: ' + error.toString() };
   }
