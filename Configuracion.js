@@ -2,7 +2,7 @@ function saveConfiguracion(data) {
   try {
     setupDatabase();
     var sheet = getSpreadsheet().getSheetByName('CONFIGURACION');
-    data.Categoria = requireOption_(data.Categoria, ['LABOR', 'PRODUCTO', 'CULTIVO'], 'Categoría');
+    data.Categoria = validateConfigCategory_(data.Categoria);
     data.Nombre = cleanText_(data.Nombre, 'Nombre', true);
     data.Activo = data.Activo !== false;
     if (data.ID_Configuracion) {
@@ -20,4 +20,16 @@ function saveConfiguracion(data) {
   } catch (error) {
     return { success: false, error: 'Error al guardar la configuración: ' + error.toString() };
   }
+}
+
+function validateConfigCategory_(category) {
+  var value = cleanText_(category, 'Categoría', true);
+  var baseCategories = ['LABOR', 'PRODUCTO', 'CULTIVO', 'CATEGORIA'];
+  if (baseCategories.indexOf(value) !== -1) return value;
+  var sheet = getSpreadsheet().getSheetByName('CONFIGURACION');
+  var exists = getSheetDataAsObjects(sheet).some(function(item) {
+    return item.Categoria === 'CATEGORIA' && item.Activo && item.Nombre === value;
+  });
+  if (!exists) throw new Error('La categoría seleccionada no existe o está inactiva.');
+  return value;
 }
