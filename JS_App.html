@@ -14,7 +14,14 @@ createApp({
     const otroTipoCultural = ref(''), otroProductoFito = ref(''), otroTipoProgramacion = ref('');
     const tiposLabor = computed(() => configuraciones.value.filter(x => x.Categoria === 'LABOR' && x.Activo));
     const productosAplicados = computed(() => configuraciones.value.filter(x => x.Categoria === 'PRODUCTO' && x.Activo));
-    const laboresOrdenadas = computed(() => [...laboresProgramadas.value].sort((a, b) => String(a.Fecha_Programada).localeCompare(String(b.Fecha_Programada))));
+    const culturalHistorial = computed(() => culturalLogs.value.filter(item => String(item.Fecha) <= AppUtils.today()));
+    const calendarioLabores = computed(() => {
+      const programadas = laboresProgramadas.value.map(item => ({ ...item, clave: 'PRG-' + item.ID_Programacion, origen: 'PROGRAMADA' }));
+      const culturalesFuturas = culturalLogs.value
+        .filter(item => String(item.Fecha) > AppUtils.today())
+        .map(item => ({ ...item, clave: 'LAB-' + item.ID_Labor, origen: 'CULTURAL', Fecha_Programada: item.Fecha, Estado: 'Registrada' }));
+      return [...programadas, ...culturalesFuturas].sort((a, b) => String(a.Fecha_Programada).localeCompare(String(b.Fecha_Programada)));
+    });
     const laboresRealizadas = computed(() => laboresProgramadas.value.filter(x => x.Estado === 'Realizada').length);
     const laboresPendientes = computed(() => laboresProgramadas.value.filter(x => x.Estado !== 'Realizada').length);
     const fertilizacionesRealizadas = computed(() => culturalLogs.value.filter(x => x.Tipo_Labor === 'Fertilización').length);
@@ -69,8 +76,30 @@ createApp({
     const editarHuerto = record => { formHuerto.value = { ...record }; window.scrollTo({ top: 0, behavior: 'smooth' }); };
     const editarCultural = record => { formCultural.value = { ...record }; window.scrollTo({ top: 0, behavior: 'smooth' }); };
     const editarFitosanitario = record => { formFito.value = { ...record }; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    const eliminarCultural = async id => {
+      if (!window.confirm('¿Eliminar esta labor del historial? Esta acción no se puede deshacer.')) return;
+      await eliminarLabor('deleteBitacoraCultural', id);
+    };
+    const eliminarLabor = async (method, id) => {
+      submitting.value = true;
+      try {
+        const response = await ServerApi.call(method, id);
+        if (!response.success) throw new Error(response.error);
+        showAlert('Labor eliminada', response.message);
+        await loadServerData();
+      } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); }
+      finally { submitting.value = false; }
+    };
+    const editarLaborCalendario = labor => {
+      if (labor.origen === 'PROGRAMADA') editarProgramacion(labor);
+      else { openTab('cultural'); editarCultural(labor); }
+    };
+    const eliminarLaborCalendario = labor => {
+      if (!window.confirm('¿Eliminar esta labor? Esta acción no se puede deshacer.')) return;
+      return eliminarLabor(labor.origen === 'PROGRAMADA' ? 'deleteLaborProgramada' : 'deleteBitacoraCultural', labor.origen === 'PROGRAMADA' ? labor.ID_Programacion : labor.ID_Labor);
+    };
     const completarProgramacion = async id => { submitting.value = true; try { const response = await ServerApi.call('completeLaborProgramada', id); if (!response.success) throw new Error(response.error); showAlert('Labor realizada', response.message); await loadServerData(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
     onMounted(loadServerData);
-    return { currentTab, loading, submitting, huertos, culturalLogs, fitosanitarioLogs, insumos, configuraciones, laboresProgramadas, formHuerto, formCultural, formFito, formProgramacion, formConfiguracion, otroTipoCultural, otroProductoFito, otroTipoProgramacion, tiposLabor, productosAplicados, laboresOrdenadas, laboresRealizadas, laboresPendientes, fertilizacionesRealizadas, alert, getHuertoNombre, loadServerData, openTab, submitHuerto, submitCultural, submitFitosanitario, submitProgramacion, submitConfiguracion, editarProgramacion, editarConfiguracion, editarHuerto, editarCultural, editarFitosanitario, completarProgramacion };
+    return { currentTab, loading, submitting, huertos, culturalLogs, culturalHistorial, fitosanitarioLogs, insumos, configuraciones, laboresProgramadas, calendarioLabores, formHuerto, formCultural, formFito, formProgramacion, formConfiguracion, otroTipoCultural, otroProductoFito, otroTipoProgramacion, tiposLabor, productosAplicados, laboresRealizadas, laboresPendientes, fertilizacionesRealizadas, alert, getHuertoNombre, loadServerData, openTab, submitHuerto, submitCultural, submitFitosanitario, submitProgramacion, submitConfiguracion, editarProgramacion, editarConfiguracion, editarHuerto, editarCultural, editarFitosanitario, editarLaborCalendario, eliminarCultural, eliminarLaborCalendario, completarProgramacion };
   }
 }).mount('#app');

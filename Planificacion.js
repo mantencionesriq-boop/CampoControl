@@ -21,3 +21,7 @@ function completeLaborProgramada(id) {
     Fecha_Realizacion: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
   });
 }
+
+function deleteLaborProgramada(id) {
+  return deleteRecord_('LABORES_PROGRAMADAS', 'ID_Programacion', id);
+}
