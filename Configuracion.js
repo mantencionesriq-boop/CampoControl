@@ -2,7 +2,7 @@ function saveConfiguracion(data) {
   try {
     setupDatabase();
     var sheet = getSpreadsheet().getSheetByName('CONFIGURACION');
-    data.Categoria = requireOption_(data.Categoria, ['LABOR', 'PRODUCTO'], 'Categoría');
+    data.Categoria = requireOption_(data.Categoria, ['LABOR', 'PRODUCTO', 'CULTIVO'], 'Categoría');
     data.Nombre = cleanText_(data.Nombre, 'Nombre', true);
     data.Activo = data.Activo !== false;
     if (data.ID_Configuracion) {

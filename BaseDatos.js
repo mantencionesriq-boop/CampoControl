@@ -1,7 +1,7 @@
 var ESQUEMA_BASE_DATOS = {
   HUERTOS: ['ID_Huerto', 'Nombre_Cliente', 'Ubicacion', 'Superficie_m2', 'Tipo_Huerto', 'Fecha_Inicio', 'Estado'],
   BITACORA_CULTURAL: ['ID_Labor', 'ID_Huerto', 'Fecha', 'Tipo_Labor', 'Descripcion_Tecnica', 'Horas_Invertidas'],
-  BITACORA_FITOSANITARIA: ['ID_Aplicacion', 'ID_Huerto', 'Fecha', 'Problema_Objetivo', 'Producto_Aplicado', 'Dosis_Utilizada', 'Eficacia_Observada'],
+  BITACORA_FITOSANITARIA: ['ID_Aplicacion', 'ID_Huerto', 'Fecha', 'Problema_Objetivo', 'Producto_Aplicado', 'Dosis_Utilizada', 'Eficacia_Observada', 'Cultivos_Tratados'],
   MAESTRO_INSUMOS: ['ID_Insumo', 'Nombre_Producto', 'Ingrediente_Activo', 'Tipo'],
   CONFIGURACION: ['ID_Configuracion', 'Categoria', 'Nombre', 'Activo'],
   LABORES_PROGRAMADAS: ['ID_Programacion', 'ID_Huerto', 'Fecha_Programada', 'Tipo_Labor', 'Descripcion', 'Horas_Estimadas', 'Estado', 'Fecha_Realizacion']
@@ -59,8 +59,12 @@ function setupDatabase() {
       var spreadsheet = getSpreadsheet();
       if (!spreadsheet) throw new Error('El proyecto no está vinculado a una hoja de cálculo.');
       Object.keys(ESQUEMA_BASE_DATOS).forEach(function(sheetName) {
-        if (spreadsheet.getSheetByName(sheetName)) return;
-        var sheet = spreadsheet.insertSheet(sheetName);
+        var sheet = spreadsheet.getSheetByName(sheetName);
+        if (sheet) {
+          ensureSheetSchema_(sheet, ESQUEMA_BASE_DATOS[sheetName]);
+          return;
+        }
+        sheet = spreadsheet.insertSheet(sheetName);
         var headers = ESQUEMA_BASE_DATOS[sheetName];
         sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
         sheet.setFrozenRows(1);
@@ -73,8 +77,19 @@ function setupDatabase() {
   }
 }
 
+function ensureSheetSchema_(sheet, expectedHeaders) {
+  if (sheet.getLastColumn() === 0) return;
+  var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
+  expectedHeaders.forEach(function(header) {
+    if (currentHeaders.indexOf(header) !== -1) return;
+    var newColumn = sheet.getLastColumn() + 1;
+    sheet.getRange(1, newColumn).setValue(header).setFontWeight('bold');
+    currentHeaders.push(header);
+  });
+}
+
 function seedDefaultConfiguration_(sheet) {
-  if (!sheet || sheet.getLastRow() > 1) return;
+  if (!sheet) return;
   var defaults = [
     ['CFG-LAB-PODA', 'LABOR', 'Poda', true],
     ['CFG-LAB-RIEGO', 'LABOR', 'Riego', true],
@@ -82,9 +97,21 @@ function seedDefaultConfiguration_(sheet) {
     ['CFG-LAB-DESM', 'LABOR', 'Desmalezado', true],
     ['CFG-LAB-SIEM', 'LABOR', 'Siembra / Trasplante', true],
     ['CFG-PROD-JABON', 'PRODUCTO', 'Jabón Potásico', true],
-    ['CFG-PROD-NEEM', 'PRODUCTO', 'Aceite de Neem', true]
+    ['CFG-PROD-NEEM', 'PRODUCTO', 'Aceite de Neem', true],
+    ['CFG-CUL-FLORES', 'CULTIVO', 'Flores', true],
+    ['CFG-CUL-ROSAS', 'CULTIVO', 'Rosas', true],
+    ['CFG-CUL-HORT', 'CULTIVO', 'Hortalizas', true],
+    ['CFG-CUL-FRUT', 'CULTIVO', 'Árboles frutales', true],
+    ['CFG-CUL-ARB', 'CULTIVO', 'Arbustos', true],
+    ['CFG-CUL-CESPED', 'CULTIVO', 'Césped', true],
+    ['CFG-CUL-ORNAM', 'CULTIVO', 'Plantas ornamentales', true],
+    ['CFG-CUL-JARDIN', 'CULTIVO', 'Jardín general', true]
   ];
-  sheet.getRange(2, 1, defaults.length, defaults[0].length).setValues(defaults);
+  var existingIds = sheet.getLastRow() > 1
+    ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getDisplayValues().map(function(row) { return row[0]; })
+    : [];
+  var missing = defaults.filter(function(row) { return existingIds.indexOf(row[0]) === -1; });
+  if (missing.length) sheet.getRange(sheet.getLastRow() + 1, 1, missing.length, missing[0].length).setValues(missing);
 }
 
 function getSheetDataAsObjects(sheet) {

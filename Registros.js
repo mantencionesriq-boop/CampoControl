@@ -76,7 +76,8 @@ function normalizeRecordField_(sheetName, field, value) {
   if (field === 'Tipo_Huerto') return requireOption_(value, ['Urbano', 'Familiar', 'Comunitario'], field);
   if (field === 'Estado' && sheetName === 'HUERTOS') return requireOption_(value, ['Activo', 'Inactivo'], field);
   if (field === 'Estado' && sheetName === 'LABORES_PROGRAMADAS') return requireOption_(value, ['Programada', 'Realizada'], field);
-  if (field === 'Categoria') return requireOption_(value, ['LABOR', 'PRODUCTO'], field);
+  if (field === 'Categoria') return requireOption_(value, ['LABOR', 'PRODUCTO', 'CULTIVO'], field);
+  if (field === 'Cultivos_Tratados') return cleanSelectionList_(value, field);
   if (field === 'Activo') return value === true;
   var requiredFields = ['Nombre_Cliente', 'Ubicacion', 'Tipo_Labor', 'Descripcion_Tecnica', 'Problema_Objetivo', 'Producto_Aplicado', 'Dosis_Utilizada', 'Nombre'];
   return cleanText_(value, field, requiredFields.indexOf(field) !== -1);
