@@ -24,6 +24,7 @@ createApp({
     const loading = ref(true);
     const submitting = ref(false);
     const activeDrawer = ref('');
+    const panelDetail = ref('');
     const calendarioEstado = ref('TODAS');
     const calendarioTipo = ref('TODAS');
     const fitoCultivoFilter = ref('TODOS');
@@ -73,6 +74,8 @@ createApp({
       const tipoOk = calendarioTipo.value === 'TODAS' || item.Tipo_Labor === calendarioTipo.value;
       return estadoOk && tipoOk;
     }));
+    const panelDetalleLabores = computed(() => calendarioCompleto.value.filter(item => item.EstadoVista === panelDetail.value));
+    const panelDetailTitle = computed(() => ({ HUERTOS: 'Huertos activos', PENDIENTE: 'Labores pendientes', REALIZADA: 'Labores realizadas', APLICACIONES: 'Aplicaciones fitosanitarias' }[panelDetail.value] || 'Detalle del panel'));
     const fitosanitarioFiltrados = computed(() => fitosanitariosTemporada.value.filter(item => fitoCultivoFilter.value === 'TODOS' || getCultivos(item).indexOf(fitoCultivoFilter.value) !== -1));
     const calculoFito = computed(() => {
       const surface = Number(formFito.value.Superficie_Tratada_m2) || 0;
@@ -116,11 +119,8 @@ createApp({
       data.forEach((item, index) => { const x = 35 + index * (width / 3), barHeight = item[1] / max * 130; ctx.fillStyle = item[2]; ctx.fillRect(x, 165 - barHeight, 95, barHeight); ctx.fillStyle = '#212529'; ctx.font = '13px Segoe UI'; ctx.fillText(String(item[1]), x + 40, 155 - barHeight); ctx.fillText(item[0], x, 192); });
     };
     const openTab = tab => { currentTab.value = tab; if (tab === 'panel') setTimeout(renderDashboard, 0); };
-    const abrirDetallePanel = (tab, estado) => {
-      if (tab === 'programacion') { calendarioEstado.value = estado || 'TODAS'; calendarioTipo.value = 'TODAS'; }
-      if (tab === 'fitosanitario') fitoCultivoFilter.value = 'TODOS';
-      openTab(tab);
-    };
+    const abrirDetallePanel = detalle => { panelDetail.value = detalle; };
+    const cerrarDetallePanel = () => { panelDetail.value = ''; setTimeout(renderDashboard, 0); };
     const loadServerData = async () => {
       loading.value = true;
       try {
@@ -191,6 +191,6 @@ createApp({
     const completarProgramacion = async id => { submitting.value = true; try { const response = await ServerApi.call('completeLaborProgramada', id); if (!response.success) throw new Error(response.error); showAlert('Labor realizada', response.message); await loadServerData(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
     watch(temporadaSeleccionada, () => { if (currentTab.value === 'panel') setTimeout(renderDashboard, 0); });
     onMounted(loadServerData);
-    return { currentTab, navigation, pageMeta, loading, submitting, temporadaSeleccionada, temporadasDisponibles, temporadaLabel, activeDrawer, calendarioEstado, calendarioTipo, fitoCultivoFilter, configCategoriaFilter, huertos, culturalLogs, culturalesTemporada, culturalHistorial, fitosanitarioLogs, fitosanitariosTemporada, fitosanitarioFiltrados, calculoFito, insumos, configuraciones, configuracionesFiltradas, categoriasPersonalizadas, laboresProgramadas, programacionesTemporada, calendarioLabores, tiposCalendario, formHuerto, formCultural, formFito, formProgramacion, formConfiguracion, formCategoria, otroTipoCultural, otroProductoFito, otroTipoProgramacion, tiposLabor, productosAplicados, cultivosDisponibles, laboresRealizadas, laboresPendientes, fertilizacionesRealizadas, huertosActivos, totalHorasCulturales, superficieActiva, tasaCumplimiento, alert, getHuertoNombre, getCultivos, loadServerData, openTab, abrirDetallePanel, openDrawer, closeDrawer, nuevoHuerto, nuevaCultural, nuevoFitosanitario, nuevaProgramacion, nuevaConfiguracion, nuevaCategoria, submitHuerto, submitCultural, submitFitosanitario, submitProgramacion, submitConfiguracion, submitCategoria, editarProgramacion, editarConfiguracion, editarHuerto, editarCultural, editarFitosanitario, editarLaborCalendario, eliminarCultural, eliminarFitosanitario, eliminarLaborCalendario, completarProgramacion };
+    return { currentTab, navigation, pageMeta, loading, submitting, temporadaSeleccionada, temporadasDisponibles, temporadaLabel, activeDrawer, panelDetail, panelDetailTitle, panelDetalleLabores, calendarioEstado, calendarioTipo, fitoCultivoFilter, configCategoriaFilter, huertos, culturalLogs, culturalesTemporada, culturalHistorial, fitosanitarioLogs, fitosanitariosTemporada, fitosanitarioFiltrados, calculoFito, insumos, configuraciones, configuracionesFiltradas, categoriasPersonalizadas, laboresProgramadas, programacionesTemporada, calendarioLabores, tiposCalendario, formHuerto, formCultural, formFito, formProgramacion, formConfiguracion, formCategoria, otroTipoCultural, otroProductoFito, otroTipoProgramacion, tiposLabor, productosAplicados, cultivosDisponibles, laboresRealizadas, laboresPendientes, fertilizacionesRealizadas, huertosActivos, totalHorasCulturales, superficieActiva, tasaCumplimiento, alert, getHuertoNombre, getCultivos, loadServerData, openTab, abrirDetallePanel, cerrarDetallePanel, openDrawer, closeDrawer, nuevoHuerto, nuevaCultural, nuevoFitosanitario, nuevaProgramacion, nuevaConfiguracion, nuevaCategoria, submitHuerto, submitCultural, submitFitosanitario, submitProgramacion, submitConfiguracion, submitCategoria, editarProgramacion, editarConfiguracion, editarHuerto, editarCultural, editarFitosanitario, editarLaborCalendario, eliminarCultural, eliminarFitosanitario, eliminarLaborCalendario, completarProgramacion };
   }
 }).mount('#app');
