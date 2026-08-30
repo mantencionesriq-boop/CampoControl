@@ -69,7 +69,7 @@ function deleteRecord_(sheetName, idColumn, id) {
 
 function normalizeRecordField_(sheetName, field, value) {
   var dateFields = ['Fecha', 'Fecha_Inicio', 'Fecha_Programada', 'Fecha_Realizacion'];
-  var numericFields = ['Superficie_m2', 'Horas_Invertidas', 'Horas_Estimadas'];
+  var numericFields = ['Superficie_m2', 'Horas_Invertidas', 'Horas_Estimadas', 'Superficie_Tratada_m2', 'Volumen_100m2_L', 'Capacidad_Estanque_L', 'Dosis_100L', 'Agua_Total_L', 'Numero_Cargas', 'Producto_Total'];
   if (dateFields.indexOf(field) !== -1 && value) return cleanDate_(value, field);
   if (numericFields.indexOf(field) !== -1) return cleanNumber_(value, field, field === 'Superficie_m2' ? 0.1 : 0);
   if (field === 'ID_Huerto') return assertHuertoExists_(value);
@@ -79,6 +79,7 @@ function normalizeRecordField_(sheetName, field, value) {
   if (field === 'Categoria') return validateConfigCategory_(value);
   if (field === 'Cultivos_Tratados') return cleanSelectionList_(value, field);
   if (field === 'Activo') return value === true;
+  if (field === 'Unidad_Producto') return requireOption_(value, ['ml', 'g', 'L', 'kg'], field);
   var requiredFields = ['Nombre_Cliente', 'Ubicacion', 'Tipo_Labor', 'Descripcion_Tecnica', 'Problema_Objetivo', 'Producto_Aplicado', 'Dosis_Utilizada', 'Nombre'];
   return cleanText_(value, field, requiredFields.indexOf(field) !== -1);
 }
