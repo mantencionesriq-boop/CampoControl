@@ -109,3 +109,8 @@ function proposeTechnicalFields_(text) {
 function findRecord_(sheetName, idField, id) {
   return getSheetDataAsObjects(getSpreadsheet().getSheetByName(sheetName)).filter(function(item) { return String(item[idField]) === String(id); })[0] || null;
 }
+
+function authorizeCampoControlDrive() {
+  var root = DriveApp.getRootFolder();
+  return { success: true, message: 'Google Drive autorizado para CampoControl.', rootId: root.getId() };
+}
