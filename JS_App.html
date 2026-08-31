@@ -54,7 +54,7 @@ createApp({
     const agroquimicoAplicacion = computed(() => agroquimicos.value.find(x => x.ID_Agroquimico === formFito.value.ID_Agroquimico) || null);
     const usosAplicacion = computed(() => agroquimicosUsos.value.filter(x => x.ID_Agroquimico === formFito.value.ID_Agroquimico && (x.Activo === true || x.Activo === 'TRUE')));
     const usoAplicacion = computed(() => usosAplicacion.value.find(x => x.ID_Uso === formFito.value.ID_Uso) || null);
-    const dosisFueraRango = computed(() => usoAplicacion.value && (Number(formFito.value.Dosis_100L) < Number(usoAplicacion.value.Dosis_Minima) || Number(formFito.value.Dosis_100L) > Number(usoAplicacion.value.Dosis_Maxima)));
+    const dosisFueraRango = computed(() => usoAplicacion.value && (!(Number(formFito.value.Dosis_100L) >= Number(usoAplicacion.value.Dosis_Minima)) || Number(formFito.value.Dosis_100L) > Number(usoAplicacion.value.Dosis_Maxima)));
     const configuracionesFiltradas = computed(() => configuraciones.value.filter(item => configCategoriaFilter.value === 'TODAS' || item.Categoria === configCategoriaFilter.value));
     const categoriasPersonalizadas = computed(() => configuraciones.value.filter(x => x.Categoria === 'CATEGORIA' && x.Activo).map(x => x.Nombre).sort());
     const temporadasDisponibles = computed(() => {
