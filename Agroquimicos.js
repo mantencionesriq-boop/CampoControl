@@ -28,6 +28,44 @@ function saveAgroquimico(data) {
   } catch (error) { return { success: false, error: 'Error al guardar el agroquímico: ' + error.toString() }; }
 }
 
+function deleteAgroquimico(id) {
+  try {
+    setupDatabase();
+    return withDocumentLock_(function() {
+      var product = findRecord_('AGROQUIMICOS', 'ID_Agroquimico', id);
+      if (!product) throw new Error('El agroquímico no existe o ya fue eliminado.');
+      var applications = getSheetDataAsObjects(getSpreadsheet().getSheetByName('BITACORA_FITOSANITARIA')).filter(function(item) {
+        return String(item.ID_Agroquimico || '') === String(id) || (!item.ID_Agroquimico && normalizeCatalogName_(item.Producto_Aplicado) === product.Nombre_Normalizado);
+      });
+      if (applications.length) throw new Error('No se puede eliminar porque tiene ' + applications.length + ' aplicación(es) registrada(s). Márquelo como Inactivo para conservar la trazabilidad.');
+      var documents = getSheetDataAsObjects(getSpreadsheet().getSheetByName('AGROQUIMICOS_DOCUMENTOS')).filter(function(item) { return String(item.ID_Agroquimico) === String(id); });
+      documents.forEach(function(document) {
+        if (!document.Drive_File_ID) return;
+        try { DriveApp.getFileById(document.Drive_File_ID).setTrashed(true); } catch (ignored) {}
+      });
+      deleteRowsByValue_('AGROQUIMICOS_DOCUMENTOS', 'ID_Agroquimico', id);
+      deleteRowsByValue_('AGROQUIMICOS_USOS', 'ID_Agroquimico', id);
+      deleteRowsByValue_('AGROQUIMICOS_VERSIONES', 'ID_Agroquimico', id);
+      deleteRowsByValue_('AGROQUIMICOS', 'ID_Agroquimico', id);
+      audit_('ELIMINAR', 'AGROQUIMICO', id, { nombre: product.Nombre_Comercial, documentos: documents.length });
+      return { success: true, message: 'Agroquímico eliminado correctamente.' };
+    });
+  } catch (error) { return { success: false, error: 'Error al eliminar el agroquímico: ' + error.toString() }; }
+}
+
+function deleteRowsByValue_(sheetName, field, value) {
+  var sheet = getSpreadsheet().getSheetByName(sheetName);
+  if (!sheet || sheet.getLastRow() < 2) return 0;
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0], column = headers.indexOf(field);
+  if (column === -1) throw new Error('No existe la columna ' + field + ' en ' + sheetName + '.');
+  var values = sheet.getRange(2, column + 1, sheet.getLastRow() - 1, 1).getValues(), deleted = 0;
+  for (var index = values.length - 1; index >= 0; index--) {
+    if (String(values[index][0]) !== String(value)) continue;
+    sheet.deleteRow(index + 2); deleted++;
+  }
+  return deleted;
+}
+
 function saveAgroquimicoUso(data) {
   try {
     setupDatabase();
