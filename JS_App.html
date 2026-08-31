@@ -120,7 +120,8 @@ createApp({
     const superficieActiva = computed(() => huertos.value.filter(x => x.Estado === 'Activo').reduce((sum, x) => sum + (Number(x.Superficie_m2) || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 1 }));
     const tasaCumplimiento = computed(() => programacionesTemporada.value.length ? Math.round(laboresRealizadas.value / programacionesTemporada.value.length * 100) : 0);
 
-    const showAlert = (title, message, type = 'success') => { alert.value = { show: true, title, message, type }; setTimeout(() => { alert.value.show = false; }, 5000); };
+    const showAlert = (title, message, type = 'success') => Swal.fire({ title, text: String(message || ''), icon: type === 'danger' ? 'error' : type, confirmButtonText: 'Aceptar', confirmButtonColor: '#198754', customClass: { popup: 'campocontrol-swal' } });
+    const confirmAction = (title, message, confirmText = 'Eliminar') => Swal.fire({ title, text: message, icon: 'warning', showCancelButton: true, confirmButtonText: confirmText, cancelButtonText: 'Cancelar', confirmButtonColor: '#dc3545', cancelButtonColor: '#64748b', reverseButtons: true, focusCancel: true, customClass: { popup: 'campocontrol-swal' } }).then(result => result.isConfirmed);
     function getEstadoCalendario(item) {
       if (item.Estado === 'Realizada') return 'REALIZADA';
       if (serverToday.value > String(item.Fecha_Programada)) return 'VENCIDA';
@@ -193,7 +194,7 @@ createApp({
     const volverAgroquimicos = () => { if (agroDirty.value) { showAlert('Cambios sin guardar', 'Guarde la ficha antes de volver al catálogo.', 'warning'); return; } agroView.value = 'list'; selectedAgroId.value = ''; extractedReview.value = null; };
     const guardarAgroquimico = async () => { submitting.value = true; try { const response = await ServerApi.call('saveAgroquimico', formAgro.value); if (!response.success) throw new Error(response.error); selectedAgroId.value = response.id || formAgro.value.ID_Agroquimico; agroDirty.value = false; showAlert('Ficha guardada', response.message); await loadServerData(); if (selectedAgroId.value) editarAgroquimico(agroquimicos.value.find(x => x.ID_Agroquimico === selectedAgroId.value)); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
     const eliminarAgroquimico = async product => {
-      if (!product || !window.confirm('¿Eliminar el agroquímico "' + product.Nombre_Comercial + '"? También se eliminarán sus usos, versiones y documentos. Esta acción no se puede deshacer.')) return;
+      if (!product || !(await confirmAction('Eliminar agroquímico', 'Se eliminará "' + product.Nombre_Comercial + '" junto con sus usos, versiones y documentos. Esta acción no se puede deshacer.'))) return;
       submitting.value = true;
       try {
         const response = await ServerApi.call('deleteAgroquimico', product.ID_Agroquimico);
@@ -218,11 +219,11 @@ createApp({
     const editarCultural = record => { formCultural.value = { ...record }; openDrawer('cultural'); };
     const editarFitosanitario = record => { formFito.value = { ...AppUtils.newFitosanitario(), ...record, Cultivos_Tratados: getCultivos(record), Sectores_Aplicacion: String(record.Sectores_Aplicacion || '').split(' · ').filter(Boolean), Malezas_Objetivo: String(record.Malezas_Objetivo || '').split(' · ').filter(Boolean) }; openDrawer('fitosanitario'); };
     const eliminarCultural = async id => {
-      if (!window.confirm('¿Eliminar esta labor del historial? Esta acción no se puede deshacer.')) return;
+      if (!(await confirmAction('Eliminar labor', 'Se eliminará esta labor del historial. Esta acción no se puede deshacer.'))) return;
       await eliminarLabor('deleteBitacoraCultural', id);
     };
     const eliminarFitosanitario = async id => {
-      if (!window.confirm('¿Eliminar esta aplicación fitosanitaria? Esta acción no se puede deshacer.')) return;
+      if (!(await confirmAction('Eliminar aplicación', 'Se eliminará esta aplicación fitosanitaria. Esta acción no se puede deshacer.'))) return;
       await eliminarLabor('deleteBitacoraFitosanitaria', id);
     };
     const eliminarLabor = async (method, id) => {
@@ -239,8 +240,8 @@ createApp({
       if (labor.origen === 'PROGRAMADA') editarProgramacion(labor);
       else { openTab('cultural'); editarCultural(labor); }
     };
-    const eliminarLaborCalendario = labor => {
-      if (!window.confirm('¿Eliminar esta labor? Esta acción no se puede deshacer.')) return;
+    const eliminarLaborCalendario = async labor => {
+      if (!(await confirmAction('Eliminar labor', 'Se eliminará esta labor del calendario. Esta acción no se puede deshacer.'))) return;
       return eliminarLabor(labor.origen === 'PROGRAMADA' ? 'deleteLaborProgramada' : 'deleteBitacoraCultural', labor.origen === 'PROGRAMADA' ? labor.ID_Programacion : labor.ID_Labor);
     };
     const completarProgramacion = async id => { submitting.value = true; try { const response = await ServerApi.call('completeLaborProgramada', id); if (!response.success) throw new Error(response.error); showAlert('Labor realizada', response.message); await loadServerData(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
