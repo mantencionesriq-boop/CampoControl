@@ -11,7 +11,7 @@ function deleteBitacoraCultural(id) {
 }
 
 function updateBitacoraFitosanitaria(data) {
-  return updateRecord_('BITACORA_FITOSANITARIA', 'ID_Aplicacion', data.ID_Aplicacion, data);
+  return saveBitacoraFitosanitaria_(data, true);
 }
 
 function deleteBitacoraFitosanitaria(id) {
