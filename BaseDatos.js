@@ -1,5 +1,5 @@
 var ESQUEMA_BASE_DATOS = {
-  HUERTOS: ['ID_Huerto', 'Nombre_Cliente', 'Ubicacion', 'Superficie_m2', 'Tipo_Huerto', 'Fecha_Inicio', 'Estado'],
+  HUERTOS: ['ID_Huerto', 'Nombre_Cliente', 'Ubicacion', 'Superficie_m2', 'Tipo_Huerto', 'Cobertura_Huerto', 'Fecha_Inicio', 'Estado'],
   BITACORA_CULTURAL: ['ID_Labor', 'ID_Huerto', 'Fecha', 'Tipo_Labor', 'Descripcion_Tecnica', 'Horas_Invertidas'],
   BITACORA_FITOSANITARIA: ['ID_Aplicacion', 'ID_Huerto', 'Fecha', 'Problema_Objetivo', 'Producto_Aplicado', 'Dosis_Utilizada', 'Eficacia_Observada', 'Cultivos_Tratados', 'Superficie_Tratada_m2', 'Volumen_100m2_L', 'Capacidad_Estanque_L', 'Dosis_100L', 'Unidad_Producto', 'Agua_Total_L', 'Numero_Cargas', 'Producto_Total', 'ID_Agroquimico', 'ID_Version', 'ID_Uso', 'Tipo_Aplicacion', 'Ingrediente_Activo_Snapshot', 'Tipo_Producto_Snapshot', 'Sectores_Aplicacion', 'Tipo_Objetivo', 'Malezas_Objetivo', 'Metodo_Aplicacion', 'Aplicador', 'Condiciones_Meteorologicas', 'Periodo_Carencia_Snapshot', 'Tiempo_Reingreso_Snapshot', 'Fuera_Rango', 'Justificacion_Excepcion', 'Autorizado_Por', 'Fecha_Creacion', 'Creado_Por', 'Estado_Registro'],
   MAESTRO_INSUMOS: ['ID_Insumo', 'Nombre_Producto', 'Ingrediente_Activo', 'Tipo'],
@@ -167,8 +167,9 @@ function seedDefaultConfiguration_(sheet) {
     ['CFG-CUL-ARB', 'CULTIVO', 'Arbustos', true],
     ['CFG-CUL-CESPED', 'CULTIVO', 'Césped', true],
     ['CFG-CUL-ORNAM', 'CULTIVO', 'Plantas ornamentales', true],
-    ['CFG-CUL-JARDIN', 'CULTIVO', 'Jardín general', true]
-    ,['CFG-HUE-URB', 'TIPO_HUERTO', 'Urbano', true], ['CFG-HUE-FAM', 'TIPO_HUERTO', 'Familiar', true], ['CFG-HUE-COM', 'TIPO_HUERTO', 'Comunitario', true]
+    ['CFG-CUL-JARDIN', 'CULTIVO', 'Jardín general', true],
+    ['CFG-HUE-URB', 'TIPO_HUERTO', 'Urbano', true], ['CFG-HUE-FAM', 'TIPO_HUERTO', 'Familiar', true], ['CFG-HUE-COM', 'TIPO_HUERTO', 'Comunitario', true],
+    ['CFG-COB-MULCH', 'COBERTURA', 'Mulch orgánico', true], ['CFG-COB-VEGETAL', 'COBERTURA', 'Cobertura vegetal', true], ['CFG-COB-PIEDRA', 'COBERTURA', 'Grava o piedra', true], ['CFG-COB-GEOTEXTIL', 'COBERTURA', 'Geotextil', true], ['CFG-COB-SUELO', 'COBERTURA', 'Suelo desnudo', true]
   ];
   var existingIds = sheet.getLastRow() > 1
     ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getDisplayValues().map(function(row) { return row[0]; })

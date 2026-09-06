@@ -1,5 +1,12 @@
 function updateHuerto(data) {
-  return updateRecord_('HUERTOS', 'ID_Huerto', data.ID_Huerto, data);
+  try {
+    setupDatabase();
+    data.Tipo_Huerto = requireActiveConfiguration_(data.Tipo_Huerto, 'TIPO_HUERTO', 'Tipo de huerto');
+    data.Cobertura_Huerto = requireActiveConfiguration_(data.Cobertura_Huerto, 'COBERTURA', 'Cobertura del huerto');
+    return updateRecord_('HUERTOS', 'ID_Huerto', data.ID_Huerto, data);
+  } catch (error) {
+    return { success: false, error: 'Error al actualizar el huerto: ' + error.toString() };
+  }
 }
 
 function updateBitacoraCultural(data) {
