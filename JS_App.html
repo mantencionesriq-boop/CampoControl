@@ -12,6 +12,7 @@ createApp({
       { id: 'fitosanitario', label: 'Fitosanitario', icon: 'bi bi-shield-plus' },
       { id: 'agroquimicos', label: 'Agroquímicos', icon: 'bi bi-prescription2' },
       { id: 'programacion', label: 'Calendario', icon: 'bi bi-calendar-week' },
+      { id: 'bitacoraProyecto', label: 'Bitácora del proyecto', icon: 'bi bi-journal-text' },
       { id: 'configuracion', label: 'Configuración', icon: 'bi bi-sliders' }
     ];
     const pageMeta = computed(() => ({
@@ -21,6 +22,7 @@ createApp({
       fitosanitario: { title: 'Control fitosanitario', subtitle: 'Aplicaciones, dosis y seguimiento de eficacia.' },
       agroquimicos: { title: 'Catálogo de agroquímicos', subtitle: 'Fichas técnicas, usos, documentos y trazabilidad.' },
       programacion: { title: 'Calendario de labores', subtitle: 'Planificación, seguimiento y cierre de actividades.' },
+      bitacoraProyecto: { title: 'Bitácora del proyecto', subtitle: 'Decisiones, visitas, incidencias y seguimiento transversal.' },
       configuracion: { title: 'Configuración operativa', subtitle: 'Catálogos utilizados en formularios y procesos.' }
     }[currentTab.value]));
     const loading = ref(true);
@@ -34,7 +36,7 @@ createApp({
     const fitoCultivoFilter = ref('TODOS');
     const configCategoriaFilter = ref('TODAS');
     const filtroAgro = ref('');
-    const huertos = ref([]), huertoCultivos = ref([]), culturalLogs = ref([]), fitosanitarioLogs = ref([]), insumos = ref([]);
+    const huertos = ref([]), huertoCultivos = ref([]), bitacoraProyecto = ref([]), culturalLogs = ref([]), fitosanitarioLogs = ref([]), insumos = ref([]);
     const configuraciones = ref([]), laboresProgramadas = ref([]);
     const agroquimicos = ref([]), agroquimicosVersiones = ref([]), agroquimicosUsos = ref([]), agroquimicosDocumentos = ref([]), malezas = ref([]), sectoresAplicacion = ref([]);
     const alert = ref({ show: false, type: 'success', title: '', message: '' });
@@ -42,6 +44,7 @@ createApp({
     const formProgramacion = ref({ ID_Programacion: '', ID_Huerto: '', Fecha_Programada: AppUtils.today(), Tipo_Labor: '', Descripcion: '', Horas_Estimadas: 1 });
     const formConfiguracion = ref({ ID_Configuracion: '', Categoria: 'LABOR', Nombre: '', Activo: true });
     const formCategoria = ref({ ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true });
+    const formBitacoraProyecto = ref({ ID_Entrada: '', Fecha: AppUtils.today(), ID_Huerto: '', Categoria: 'General', Titulo: '', Detalle: '' });
     const agroView = ref('list'), agroTab = ref('general'), selectedAgroId = ref(''), extractedReview = ref(null), agroDirty = ref(false);
     const documentUpload = ref({ active: false, type: '', message: '' });
     const formAgro = ref({ ID_Agroquimico: '', Nombre_Comercial: '', Ingrediente_Activo: '', Concentracion: '', Formulacion: '', Tipo_Producto: 'Herbicida', Fabricante: '', Proveedor: '', Numero_Registro: '', Estado: 'Activo' });
@@ -77,6 +80,8 @@ createApp({
     const dosisFueraRango = computed(() => usoAplicacion.value && (!(Number(formFito.value.Dosis_100L) >= Number(usoAplicacion.value.Dosis_Minima)) || Number(formFito.value.Dosis_100L) > Number(usoAplicacion.value.Dosis_Maxima)));
     const configuracionesFiltradas = computed(() => configuraciones.value.filter(item => configCategoriaFilter.value === 'TODAS' || item.Categoria === configCategoriaFilter.value));
     const categoriasPersonalizadas = computed(() => configuraciones.value.filter(x => x.Categoria === 'CATEGORIA' && x.Activo).map(x => x.Nombre).sort());
+    const categoriasBitacoraProyecto = computed(() => ['General', 'Visita técnica', 'Decisión', 'Incidencia', 'Acuerdo', 'Seguimiento', ...categoriasPersonalizadas.value.filter(x => ['General', 'Visita técnica', 'Decisión', 'Incidencia', 'Acuerdo', 'Seguimiento'].indexOf(x) === -1)]);
+    const bitacoraProyectoOrdenada = computed(() => [...bitacoraProyecto.value].sort((a, b) => String(b.Fecha).localeCompare(String(a.Fecha)) || String(b.Fecha_Creacion).localeCompare(String(a.Fecha_Creacion))));
     const temporadasDisponibles = computed(() => {
       const years = [String(new Date().getFullYear())];
       culturalLogs.value.forEach(x => years.push(getSeasonStart(x.Fecha)));
@@ -152,6 +157,7 @@ createApp({
     const nuevaProgramacion = () => { formProgramacion.value = { ID_Programacion: '', ID_Huerto: '', Fecha_Programada: serverToday.value, Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1 }; openDrawer('programacion'); };
     const nuevaConfiguracion = () => { formConfiguracion.value = { ID_Configuracion: '', Categoria: 'LABOR', Nombre: '', Activo: true }; openDrawer('configuracion'); };
     const nuevaCategoria = () => { formCategoria.value = { ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true }; openDrawer('categoria'); };
+    const nuevaBitacoraProyecto = () => { formBitacoraProyecto.value = { ID_Entrada: '', Fecha: serverToday.value, ID_Huerto: '', Categoria: 'General', Titulo: '', Detalle: '' }; openDrawer('bitacoraProyecto'); };
     const getHuertoNombre = id => (huertos.value.find(x => x.ID_Huerto === id) || {}).Nombre_Cliente || id;
     const renderDashboard = () => {
       const canvas = document.getElementById('canvasResumen');
@@ -170,7 +176,7 @@ createApp({
       try {
         const response = await ServerApi.call('getInitialData');
         if (!response.success) throw new Error(response.error);
-        huertos.value = response.huertos; huertoCultivos.value = response.huertoCultivos || []; culturalLogs.value = response.culturalLogs; fitosanitarioLogs.value = response.fitosanitarioLogs; insumos.value = response.insumos;
+        huertos.value = response.huertos; huertoCultivos.value = response.huertoCultivos || []; bitacoraProyecto.value = response.bitacoraProyecto || []; culturalLogs.value = response.culturalLogs; fitosanitarioLogs.value = response.fitosanitarioLogs; insumos.value = response.insumos;
         configuraciones.value = response.configuraciones; laboresProgramadas.value = response.laboresProgramadas;
         agroquimicos.value = response.agroquimicos || []; agroquimicosVersiones.value = response.agroquimicosVersiones || []; agroquimicosUsos.value = response.agroquimicosUsos || []; agroquimicosDocumentos.value = response.agroquimicosDocumentos || []; malezas.value = response.malezas || []; sectoresAplicacion.value = response.sectoresAplicacion || [];
         serverToday.value = response.today || AppUtils.today();
@@ -202,6 +208,7 @@ createApp({
     const submitProgramacion = async () => { try { await saveOtherOption(formProgramacion, 'Tipo_Labor', 'LABOR', otroTipoProgramacion); await submit('saveLaborProgramada', formProgramacion, () => ({ ID_Programacion: '', ID_Huerto: '', Fecha_Programada: AppUtils.today(), Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1 })); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } };
     const submitConfiguracion = () => submit('saveConfiguracion', formConfiguracion, () => ({ ID_Configuracion: '', Categoria: 'LABOR', Nombre: '', Activo: true }));
     const submitCategoria = () => submit('saveConfiguracion', formCategoria, () => ({ ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true }));
+    const submitBitacoraProyecto = () => submit(formBitacoraProyecto.value.ID_Entrada ? 'updateBitacoraProyecto' : 'addBitacoraProyecto', formBitacoraProyecto, () => ({ ID_Entrada: '', Fecha: serverToday.value, ID_Huerto: '', Categoria: 'General', Titulo: '', Detalle: '' }));
     const nuevoAgroquimico = () => { formAgro.value = { ID_Agroquimico: '', Nombre_Comercial: '', Ingrediente_Activo: '', Concentracion: '', Formulacion: '', Tipo_Producto: 'Herbicida', Fabricante: '', Proveedor: '', Numero_Registro: '', Estado: 'Activo' }; selectedAgroId.value = ''; agroTab.value = 'general'; agroView.value = 'form'; extractedReview.value = null; agroDirty.value = false; documentUpload.value = { active: false, type: '', message: '' }; };
     const editarAgroquimico = record => { if (!record) return; selectedAgroId.value = record.ID_Agroquimico; formAgro.value = { ...record }; agroTab.value = 'general'; agroView.value = 'form'; extractedReview.value = null; agroDirty.value = false; documentUpload.value = { active: false, type: '', message: '' }; };
     const cargarAgroExistente = () => { const record = agroquimicos.value.find(x => x.ID_Agroquimico === selectedAgroId.value); if (record) editarAgroquimico(record); };
@@ -236,6 +243,7 @@ createApp({
     const editarHuerto = record => { formHuerto.value = { ...record, CultivoSeleccionado: '', Cultivos: huertoCultivos.value.filter(cultivo => String(cultivo.ID_Huerto) === String(record.ID_Huerto)).map(cultivo => ({ ...cultivo })) }; openDrawer('huerto'); };
     const editarCultural = record => { formCultural.value = { ...record }; openDrawer('cultural'); };
     const editarFitosanitario = record => { formFito.value = { ...AppUtils.newFitosanitario(), ...record, Cultivos_Tratados: getCultivos(record), Sectores_Aplicacion: String(record.Sectores_Aplicacion || '').split(' · ').filter(Boolean), Malezas_Objetivo: String(record.Malezas_Objetivo || '').split(' · ').filter(Boolean) }; openDrawer('fitosanitario'); };
+    const editarBitacoraProyecto = record => { formBitacoraProyecto.value = { ...record, ID_Huerto: record.ID_Huerto || '', Categoria: record.Categoria || 'General' }; openDrawer('bitacoraProyecto'); };
     const eliminarCultural = async id => {
       if (!(await confirmAction('Eliminar labor', 'Se eliminará esta labor del historial. Esta acción no se puede deshacer.'))) return;
       await eliminarLabor('deleteBitacoraCultural', id);
@@ -243,6 +251,13 @@ createApp({
     const eliminarFitosanitario = async id => {
       if (!(await confirmAction('Eliminar aplicación', 'Se eliminará esta aplicación fitosanitaria. Esta acción no se puede deshacer.'))) return;
       await eliminarLabor('deleteBitacoraFitosanitaria', id);
+    };
+    const eliminarBitacoraProyecto = async id => {
+      if (!(await confirmAction('Eliminar entrada', 'Se eliminará esta entrada de la bitácora. Esta acción no se puede deshacer.'))) return;
+      submitting.value = true;
+      try { const response = await ServerApi.call('deleteBitacoraProyecto', id); if (!response.success) throw new Error(response.error); showAlert('Entrada eliminada', response.message); await loadServerData(); }
+      catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); }
+      finally { submitting.value = false; }
     };
     const eliminarLabor = async (method, id) => {
       submitting.value = true;
@@ -268,6 +283,6 @@ createApp({
     const completarProgramacion = async id => { submitting.value = true; try { const response = await ServerApi.call('completeLaborProgramada', id); if (!response.success) throw new Error(response.error); showAlert('Labor realizada', response.message); await loadServerData(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
     watch(temporadaSeleccionada, () => { if (currentTab.value === 'panel') setTimeout(renderDashboard, 0); });
     onMounted(loadServerData);
-    return { agroView, agroTab, selectedAgroId, extractedReview, documentUpload, agroDirty, formAgro, formUso, formMaleza, formSector, filtroAgro, agroquimicos, agroquimicosFiltrados, agroquimicosVersiones, agroquimicosUsos, agroquimicosDocumentos, malezas, sectoresAplicacion, agroquimicosActivos, ingredientesRegistrados, formulacionesRegistradas, formulacionesSAG, fabricantesRegistrados, proveedoresRegistrados, selectedAgro, usosAgroSeleccionado, documentosAgroSeleccionado, agroquimicoAplicacion, usosAplicacion, usoAplicacion, dosisFueraRango, currentTab, navigation, pageMeta, loading, submitting, temporadaSeleccionada, temporadasDisponibles, temporadaLabel, activeDrawer, panelDetail, panelDetailTitle, panelDetalleLabores, calendarioEstado, calendarioTipo, calendarioHuerto, fitoCultivoFilter, configCategoriaFilter, huertos, huertoCultivos, cultivosDelHuerto, culturalLogs, culturalesTemporada, culturalHistorial, fitosanitarioLogs, fitosanitariosTemporada, fitosanitarioFiltrados, calculoFito, insumos, configuraciones, configuracionesFiltradas, categoriasPersonalizadas, laboresProgramadas, programacionesTemporada, calendarioLabores, tiposCalendario, formHuerto, formCultural, formFito, formProgramacion, formConfiguracion, formCategoria, otroTipoCultural, otroProductoFito, otroTipoProgramacion, tiposLabor, productosAplicados, cultivosDisponibles, laboresRealizadas, laboresPendientes, fertilizacionesRealizadas, huertosActivos, totalHorasCulturales, superficieActiva, tasaCumplimiento, alert, nuevoAgroquimico, editarAgroquimico, cargarAgroExistente, marcarFichaAgroSucia, cambiarAgroTab, volverAgroquimicos, guardarAgroquimico, eliminarAgroquimico, nuevoUsoAgroquimico, editarUsoAgroquimico, guardarUsoAgroquimico, guardarCatalogoFito, cargarDocumentoAgro, aplicarExtraccion, seleccionarAgroAplicacion, seleccionarUsoAplicacion, seleccionarHuertoCultural, seleccionarHuertoFito, getHuertoNombre, getCultivos, loadServerData, openTab, abrirDetallePanel, cerrarDetallePanel, openDrawer, closeDrawer, nuevoHuerto, nuevaCultural, nuevoFitosanitario, nuevaProgramacion, nuevaConfiguracion, nuevaCategoria, submitHuerto, submitCultural, submitFitosanitario, submitProgramacion, submitConfiguracion, submitCategoria, editarProgramacion, editarConfiguracion, editarHuerto, editarCultural, editarFitosanitario, editarLaborCalendario, eliminarCultural, eliminarFitosanitario, eliminarLaborCalendario, completarProgramacion };
+    return { agroView, agroTab, selectedAgroId, extractedReview, documentUpload, agroDirty, formAgro, formUso, formMaleza, formSector, filtroAgro, agroquimicos, agroquimicosFiltrados, agroquimicosVersiones, agroquimicosUsos, agroquimicosDocumentos, malezas, sectoresAplicacion, agroquimicosActivos, ingredientesRegistrados, formulacionesRegistradas, formulacionesSAG, fabricantesRegistrados, proveedoresRegistrados, selectedAgro, usosAgroSeleccionado, documentosAgroSeleccionado, agroquimicoAplicacion, usosAplicacion, usoAplicacion, dosisFueraRango, currentTab, navigation, pageMeta, loading, submitting, temporadaSeleccionada, temporadasDisponibles, temporadaLabel, activeDrawer, panelDetail, panelDetailTitle, panelDetalleLabores, calendarioEstado, calendarioTipo, calendarioHuerto, fitoCultivoFilter, configCategoriaFilter, huertos, huertoCultivos, bitacoraProyecto, bitacoraProyectoOrdenada, categoriasBitacoraProyecto, cultivosDelHuerto, culturalLogs, culturalesTemporada, culturalHistorial, fitosanitarioLogs, fitosanitariosTemporada, fitosanitarioFiltrados, calculoFito, insumos, configuraciones, configuracionesFiltradas, categoriasPersonalizadas, laboresProgramadas, programacionesTemporada, calendarioLabores, tiposCalendario, formHuerto, formCultural, formFito, formProgramacion, formConfiguracion, formCategoria, formBitacoraProyecto, otroTipoCultural, otroProductoFito, otroTipoProgramacion, tiposLabor, productosAplicados, cultivosDisponibles, laboresRealizadas, laboresPendientes, fertilizacionesRealizadas, huertosActivos, totalHorasCulturales, superficieActiva, tasaCumplimiento, alert, nuevoAgroquimico, editarAgroquimico, cargarAgroExistente, marcarFichaAgroSucia, cambiarAgroTab, volverAgroquimicos, guardarAgroquimico, eliminarAgroquimico, nuevoUsoAgroquimico, editarUsoAgroquimico, guardarUsoAgroquimico, guardarCatalogoFito, cargarDocumentoAgro, aplicarExtraccion, seleccionarAgroAplicacion, seleccionarUsoAplicacion, seleccionarHuertoCultural, seleccionarHuertoFito, getHuertoNombre, getCultivos, loadServerData, openTab, abrirDetallePanel, cerrarDetallePanel, openDrawer, closeDrawer, nuevoHuerto, nuevaCultural, nuevoFitosanitario, nuevaProgramacion, nuevaConfiguracion, nuevaCategoria, nuevaBitacoraProyecto, submitHuerto, submitCultural, submitFitosanitario, submitProgramacion, submitConfiguracion, submitCategoria, submitBitacoraProyecto, editarProgramacion, editarConfiguracion, editarHuerto, editarCultural, editarFitosanitario, editarBitacoraProyecto, editarLaborCalendario, eliminarCultural, eliminarFitosanitario, eliminarBitacoraProyecto, eliminarLaborCalendario, completarProgramacion };
   }
 }).mount('#app');
