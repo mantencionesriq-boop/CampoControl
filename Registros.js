@@ -11,7 +11,16 @@ function deleteBitacoraCultural(id) {
 }
 
 function updateBitacoraFitosanitaria(data) {
+  try {
+    validateSuperficieTratada_(data);
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
   return updateRecord_('BITACORA_FITOSANITARIA', 'ID_Aplicacion', data.ID_Aplicacion, data);
+}
+
+function deleteBitacoraFitosanitaria(id) {
+  return deleteRecord_('BITACORA_FITOSANITARIA', 'ID_Aplicacion', id);
 }
 
 function updateRecord_(sheetName, idColumn, id, data) {

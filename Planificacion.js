@@ -6,7 +6,7 @@ function saveLaborProgramada(data) {
     }
     getSpreadsheet().getSheetByName('LABORES_PROGRAMADAS').appendRow([
       'PRG-' + Utilities.getUuid().slice(0, 8).toUpperCase(), data.ID_Huerto,
-      data.Fecha_Programada, data.Tipo_Labor, data.Descripcion,
+      data.ID_Cultivo || '', data.Fecha_Programada, data.Tipo_Labor, data.Descripcion,
       data.Horas_Estimadas, 'Programada', ''
     ]);
     return { success: true, message: 'Labor programada correctamente.' };
