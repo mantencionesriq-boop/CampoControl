@@ -52,7 +52,7 @@ function deleteConfiguracion(id) {
 
 function validateConfigCategory_(category) {
   var value = cleanText_(category, 'Categoría', true);
-  var baseCategories = ['LABOR', 'PRODUCTO', 'CULTIVO', 'COBERTURA', 'CATEGORIA'];
+  var baseCategories = ['LABOR', 'PRODUCTO', 'CULTIVO', 'COBERTURA', 'TIPO_HUERTO', 'TIPO_APLICACION', 'CATEGORIA'];
   if (baseCategories.indexOf(value) !== -1) return value;
   var sheet = getSpreadsheet().getSheetByName('CONFIGURACION');
   var exists = getSheetDataAsObjects(sheet).some(function(item) {
