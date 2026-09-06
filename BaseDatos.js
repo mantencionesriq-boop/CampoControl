@@ -224,6 +224,7 @@ function ensureSheetSchema_(sheet, expectedHeaders) {
 
 function seedDefaultConfiguration_(sheet) {
   if (!sheet) return;
+  if (sheet.getLastRow() > 1) return;
   var defaults = [
     ['CFG-LAB-PODA', 'LABOR', 'Poda', true],
     ['CFG-LAB-RIEGO', 'LABOR', 'Riego', true],
@@ -254,11 +255,7 @@ function seedDefaultConfiguration_(sheet) {
     ['CFG-COB-GEOTEXTIL', 'COBERTURA', 'Geotextil', true],
     ['CFG-COB-SUELO', 'COBERTURA', 'Suelo desnudo', true]
   ];
-  var existingIds = sheet.getLastRow() > 1
-    ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getDisplayValues().map(function(row) { return row[0]; })
-    : [];
-  var missing = defaults.filter(function(row) { return existingIds.indexOf(row[0]) === -1; });
-  missing.forEach(function(row) { appendObjectRow_(sheet, { ID_Configuracion: row[0], Categoria: row[1], Nombre: row[2], Grupo: '', Activo: row[3] }); });
+  defaults.forEach(function(row) { appendObjectRow_(sheet, { ID_Configuracion: row[0], Categoria: row[1], Nombre: row[2], Grupo: '', Activo: row[3] }); });
 }
 
 function migrateConfigurationGroups_(sheet) {
