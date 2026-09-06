@@ -5,7 +5,7 @@ var ESQUEMA_BASE_DATOS = {
   BITACORA_CULTURAL: ['ID_Labor', 'ID_Huerto', 'ID_Cultivo', 'Cultivo', 'Fecha', 'Tipo_Labor', 'Descripcion_Tecnica', 'Horas_Invertidas'],
   BITACORA_FITOSANITARIA: ['ID_Aplicacion', 'ID_Huerto', 'Fecha', 'Problema_Objetivo', 'Producto_Aplicado', 'Dosis_Utilizada', 'Eficacia_Observada', 'Cultivos_Tratados', 'Superficie_Tratada_m2', 'Volumen_100m2_L', 'Capacidad_Estanque_L', 'Dosis_100L', 'Unidad_Producto', 'Agua_Total_L', 'Numero_Cargas', 'Producto_Total', 'ID_Agroquimico', 'ID_Version', 'ID_Uso', 'Tipo_Aplicacion', 'Ingrediente_Activo_Snapshot', 'Tipo_Producto_Snapshot', 'Sectores_Aplicacion', 'Tipo_Objetivo', 'Malezas_Objetivo', 'Metodo_Aplicacion', 'Aplicador', 'Condiciones_Meteorologicas', 'Periodo_Carencia_Snapshot', 'Tiempo_Reingreso_Snapshot', 'Fuera_Rango', 'Justificacion_Excepcion', 'Autorizado_Por', 'Fecha_Creacion', 'Creado_Por', 'Estado_Registro'],
   MAESTRO_INSUMOS: ['ID_Insumo', 'Nombre_Producto', 'Ingrediente_Activo', 'Tipo'],
-  CONFIGURACION: ['ID_Configuracion', 'Categoria', 'Nombre', 'Activo'],
+  CONFIGURACION: ['ID_Configuracion', 'Categoria', 'Nombre', 'Grupo', 'Activo'],
   LABORES_PROGRAMADAS: ['ID_Programacion', 'ID_Huerto', 'Fecha_Programada', 'Tipo_Labor', 'Descripcion', 'Horas_Estimadas', 'Estado', 'Fecha_Realizacion'],
   AGROQUIMICOS: ['ID_Agroquimico', 'Nombre_Comercial', 'Nombre_Normalizado', 'Ingrediente_Activo', 'Concentracion', 'Formulacion', 'Tipo_Producto', 'Fabricante', 'Proveedor', 'Numero_Registro', 'Estado', 'ID_Version_Activa', 'Fecha_Creacion', 'Creado_Por', 'Fecha_Modificacion', 'Modificado_Por'],
   AGROQUIMICOS_VERSIONES: ['ID_Version', 'ID_Agroquimico', 'Numero_Version', 'Fecha_Documento', 'Periodo_Carencia', 'Tiempo_Reingreso', 'Maximo_Aplicaciones', 'Intervalo_Aplicaciones', 'Compatibilidades', 'Incompatibilidades', 'Precauciones', 'EPP', 'Almacenamiento', 'Estado_Revision', 'Confirmado_Por', 'Fecha_Confirmacion'],
@@ -147,6 +147,7 @@ function setupDatabase() {
         sheet.setFrozenRows(1);
       });
       seedDefaultConfiguration_(spreadsheet.getSheetByName('CONFIGURACION'));
+      migrateConfigurationGroups_(spreadsheet.getSheetByName('CONFIGURACION'));
       migrateLegacyHuertoCultivos_(spreadsheet);
       seedFitosanitarioCatalogs_(spreadsheet);
       migrateLegacyProducts_(spreadsheet);
@@ -257,7 +258,23 @@ function seedDefaultConfiguration_(sheet) {
     ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getDisplayValues().map(function(row) { return row[0]; })
     : [];
   var missing = defaults.filter(function(row) { return existingIds.indexOf(row[0]) === -1; });
-  if (missing.length) sheet.getRange(sheet.getLastRow() + 1, 1, missing.length, missing[0].length).setValues(missing);
+  missing.forEach(function(row) { appendObjectRow_(sheet, { ID_Configuracion: row[0], Categoria: row[1], Nombre: row[2], Grupo: '', Activo: row[3] }); });
+}
+
+function migrateConfigurationGroups_(sheet) {
+  if (!sheet || sheet.getLastRow() <= 1) return;
+  var rows = sheet.getDataRange().getValues(), headers = rows[0], categoryIndex = headers.indexOf('Categoria'), nameIndex = headers.indexOf('Nombre'), groupIndex = headers.indexOf('Grupo');
+  if (groupIndex === -1) return;
+  var frutales = ['Limonero','Naranjo','Mandarino','Palto','Olivo','Manzano','Peral','Duraznero','Almendro','Higuera','Granado','Vid','Otro frutal','Pomelo','Lima','Kumquat','Membrillo','Nectarino','Cerezo','Nogal','Avellano europeo','Caqui','Níspero','Mango','Guayabo','Chirimoyo','Papayo','Kiwi','Frambuesa','Mora','Arándano','Frutilla'];
+  var hortalizas = ['Tomate','Tomate cherry','Pimiento','Ají','Berenjena','Zapallo italiano','Zapallo','Pepino','Melón','Sandía','Lechuga','Espinaca','Acelga','Rúcula','Repollo','Coliflor','Brócoli','Kale','Apio','Puerro','Cebolla','Ajo','Zanahoria','Rabanito','Remolacha','Nabo','Papa','Camote','Arveja','Poroto','Haba','Maíz','Albahaca','Cilantro','Perejil','Orégano','Romero','Tomillo','Menta'];
+  var ornamentales = ['Rosa','Rosas','Jazmín','Lavanda','Hortensia','Camelia','Azalea','Buganvilia','Geranio','Petunia','Margarita','Lirio','Tulipán','Narciso','Dalia','Orquídea','Clavel','Hibisco','Adelfa','Pitosporo','Ligustro','Ficus','Palmera','Araucaria','Ciprés','Jacarandá','Magnolio','Liquidámbar','Plátano oriental','Cubresuelo','Arbustos'];
+  var changed = false;
+  for (var row = 1; row < rows.length; row++) {
+    if (rows[row][groupIndex] || (rows[row][categoryIndex] !== 'CULTIVO' && rows[row][categoryIndex] !== 'COBERTURA')) continue;
+    var name = String(rows[row][nameIndex] || ''), group = rows[row][categoryIndex] === 'COBERTURA' ? 'Coberturas' : frutales.indexOf(name) !== -1 ? 'Frutales' : hortalizas.indexOf(name) !== -1 ? 'Hortalizas' : ornamentales.indexOf(name) !== -1 ? 'Ornamentales' : 'Generales';
+    rows[row][groupIndex] = group; changed = true;
+  }
+  if (changed) sheet.getRange(2, 1, rows.length - 1, headers.length).setValues(rows.slice(1));
 }
 
 function migrateLegacyHuertoCultivos_(spreadsheet) {

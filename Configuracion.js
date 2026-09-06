@@ -4,6 +4,7 @@ function saveConfiguracion(data) {
     var sheet = getSpreadsheet().getSheetByName('CONFIGURACION');
     data.Categoria = validateConfigCategory_(data.Categoria);
     data.Nombre = cleanText_(data.Nombre, 'Nombre', true);
+    data.Grupo = cleanText_(data.Grupo, 'Grupo', false);
     data.Activo = data.Activo !== false;
     if (data.ID_Configuracion) {
       return updateRecord_('CONFIGURACION', 'ID_Configuracion', data.ID_Configuracion, data);
@@ -14,7 +15,7 @@ function saveConfiguracion(data) {
       });
       if (existing) return { success: true, message: 'La opción ya existe en el catálogo.' };
       var id = 'CFG-' + Utilities.getUuid().slice(0, 8).toUpperCase();
-      sheet.appendRow([id, data.Categoria, data.Nombre, data.Activo]);
+      appendObjectRow_(sheet, { ID_Configuracion: id, Categoria: data.Categoria, Nombre: data.Nombre, Grupo: data.Grupo, Activo: data.Activo });
       return { success: true, message: 'Configuración guardada correctamente.' };
     });
   } catch (error) {
