@@ -158,6 +158,7 @@ createApp({
 
     const showAlert = (title, message, type = 'success') => Swal.fire({ title, text: String(message || ''), icon: type === 'danger' ? 'error' : type, confirmButtonText: 'Aceptar', confirmButtonColor: '#198754', customClass: { popup: 'campocontrol-swal' } });
     const confirmAction = (title, message, confirmText = 'Eliminar') => Swal.fire({ title, text: message, icon: 'warning', showCancelButton: true, confirmButtonText: confirmText, cancelButtonText: 'Cancelar', confirmButtonColor: '#dc3545', cancelButtonColor: '#64748b', reverseButtons: true, focusCancel: true, customClass: { popup: 'campocontrol-swal' } }).then(result => result.isConfirmed);
+    const showProcessing = (title, message) => Swal.fire({ title, text: message || 'Espere un momento…', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: () => Swal.showLoading(), customClass: { popup: 'campocontrol-swal' } });
     function getEstadoCalendario(item) {
       if (item.Estado === 'Realizada') return 'REALIZADA';
       if (serverToday.value > String(item.Fecha_Programada)) return 'VENCIDA';
@@ -203,8 +204,9 @@ createApp({
     };
     const submit = async (method, form, reset) => {
       submitting.value = true;
-      try { const response = await ServerApi.call(method, form.value); if (!response.success) throw new Error(response.error); showAlert('¡Éxito!', response.message); form.value = reset(); await loadServerData(); closeDrawer(); return true; }
-      catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); }
+      showProcessing('Guardando cambios', 'Validando y sincronizando con Google Sheets…');
+      try { const response = await ServerApi.call(method, form.value); if (!response.success) throw new Error(response.error); Swal.close(); showAlert('¡Éxito!', response.message); form.value = reset(); await loadServerData(); closeDrawer(); return true; }
+      catch (error) { Swal.close(); showAlert('Error', error.message || error.toString(), 'danger'); }
       finally { submitting.value = false; }
     };
     const saveOtherOption = async (form, field, category, otherOption) => {
@@ -258,8 +260,9 @@ createApp({
     const eliminarConfiguracion = async item => {
       if (!item || !(await confirmAction('Eliminar opción', 'Se eliminará "' + item.Nombre + '" del catálogo. Esta acción no se puede deshacer.'))) return;
       submitting.value = true;
-      try { const response = await ServerApi.call('deleteConfiguracion', item.ID_Configuracion); if (!response.success) throw new Error(response.error); showAlert('Opción eliminada', response.message); await loadServerData(); }
-      catch (error) { showAlert('No fue posible eliminar', error.message || error.toString(), 'danger'); }
+      showProcessing('Eliminando opción', 'Comprobando que no esté en uso…');
+      try { const response = await ServerApi.call('deleteConfiguracion', item.ID_Configuracion); if (!response.success) throw new Error(response.error); Swal.close(); showAlert('Opción eliminada', response.message); await loadServerData(); }
+      catch (error) { Swal.close(); showAlert('No fue posible eliminar', error.message || error.toString(), 'danger'); }
       finally { submitting.value = false; }
     };
     const editarHuerto = record => { formHuerto.value = { ...record, CultivoSeleccionado: '', Cultivos: huertoCultivos.value.filter(cultivo => String(cultivo.ID_Huerto) === String(record.ID_Huerto)).map(cultivo => ({ ...cultivo })) }; openDrawer('huerto'); };
@@ -277,18 +280,21 @@ createApp({
     const eliminarBitacoraProyecto = async id => {
       if (!(await confirmAction('Eliminar entrada', 'Se eliminará esta entrada de la bitácora. Esta acción no se puede deshacer.'))) return;
       submitting.value = true;
-      try { const response = await ServerApi.call('deleteBitacoraProyecto', id); if (!response.success) throw new Error(response.error); showAlert('Entrada eliminada', response.message); await loadServerData(); }
-      catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); }
+      showProcessing('Eliminando entrada');
+      try { const response = await ServerApi.call('deleteBitacoraProyecto', id); if (!response.success) throw new Error(response.error); Swal.close(); showAlert('Entrada eliminada', response.message); await loadServerData(); }
+      catch (error) { Swal.close(); showAlert('Error', error.message || error.toString(), 'danger'); }
       finally { submitting.value = false; }
     };
     const eliminarLabor = async (method, id) => {
       submitting.value = true;
+      showProcessing('Eliminando registro');
       try {
         const response = await ServerApi.call(method, id);
         if (!response.success) throw new Error(response.error);
+        Swal.close();
         showAlert('Labor eliminada', response.message);
         await loadServerData();
-      } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); }
+      } catch (error) { Swal.close(); showAlert('Error', error.message || error.toString(), 'danger'); }
       finally { submitting.value = false; }
     };
     const editarLaborCalendario = labor => {
