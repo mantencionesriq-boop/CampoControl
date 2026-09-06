@@ -6,7 +6,7 @@ function saveLaborProgramada(data) {
     }
     return withDocumentLock_(function() {
       getSpreadsheet().getSheetByName('LABORES_PROGRAMADAS').appendRow([
-        'PRG-' + Utilities.getUuid().slice(0, 8).toUpperCase(), assertHuertoExists_(data.ID_Huerto), cleanText_(data.Cultivo, 'Cultivo', false),
+        'PRG-' + Utilities.getUuid().slice(0, 8).toUpperCase(), assertHuertoExists_(data.ID_Huerto),
         cleanDate_(data.Fecha_Programada, 'Fecha programada'), cleanText_(data.Tipo_Labor, 'Tipo de labor', true),
         cleanText_(data.Descripcion, 'Detalle', false), cleanNumber_(data.Horas_Estimadas, 'Horas estimadas', 0),
         'Programada', ''

@@ -1,16 +1,27 @@
 function updateHuerto(data) {
   try {
-    setupDatabase();
-    data.Tipo_Huerto = requireActiveConfiguration_(data.Tipo_Huerto, 'TIPO_HUERTO', 'Tipo de huerto');
-    data.Cobertura_Huerto = requireActiveConfiguration_(data.Cobertura_Huerto, 'COBERTURA', 'Cobertura del huerto');
-    return updateRecord_('HUERTOS', 'ID_Huerto', data.ID_Huerto, data);
+    return withDocumentLock_(function() {
+      var result = updateRecordNoLock_('HUERTOS', 'ID_Huerto', data.ID_Huerto, data);
+      syncHuertoCultivos_(data.ID_Huerto, data.Cultivos);
+      return result;
+    });
   } catch (error) {
     return { success: false, error: 'Error al actualizar el huerto: ' + error.toString() };
   }
 }
 
 function updateBitacoraCultural(data) {
-  return updateRecord_('BITACORA_CULTURAL', 'ID_Labor', data.ID_Labor, data);
+  try {
+    return withDocumentLock_(function() {
+      var huertoId = assertHuertoExists_(data.ID_Huerto);
+      var cultivo = data.ID_Cultivo ? assertCultivoDeHuerto_(huertoId, data.ID_Cultivo) : null;
+      data.ID_Huerto = huertoId;
+      data.Cultivo = cultivo ? cultivo.Nombre : '';
+      return updateRecordNoLock_('BITACORA_CULTURAL', 'ID_Labor', data.ID_Labor, data);
+    });
+  } catch (error) {
+    return { success: false, error: 'Error al actualizar la labor: ' + error.toString() };
+  }
 }
 
 function deleteBitacoraCultural(id) {
@@ -28,28 +39,32 @@ function deleteBitacoraFitosanitaria(id) {
 function updateRecord_(sheetName, idColumn, id, data) {
   try {
     return withDocumentLock_(function() {
-      var sheet = getSpreadsheet().getSheetByName(sheetName);
-      if (!sheet) throw new Error('No existe la hoja ' + sheetName);
-      var values = sheet.getDataRange().getValues();
-      var headers = values[0];
-      var idIndex = headers.indexOf(idColumn);
-      if (idIndex === -1) throw new Error('No existe la columna identificadora.');
-      for (var rowIndex = 1; rowIndex < values.length; rowIndex++) {
-        if (String(values[rowIndex][idIndex]) !== String(id)) continue;
-        var updatedRow = values[rowIndex].slice();
-        headers.forEach(function(header, columnIndex) {
-          if (header !== idColumn && Object.prototype.hasOwnProperty.call(data, header)) {
-            updatedRow[columnIndex] = normalizeRecordField_(sheetName, header, data[header]);
-          }
-        });
-        sheet.getRange(rowIndex + 1, 1, 1, headers.length).setValues([updatedRow]);
-        return { success: true, message: 'Registro actualizado correctamente.' };
-      }
-      throw new Error('No se encontró el registro solicitado.');
+      return updateRecordNoLock_(sheetName, idColumn, id, data);
     });
   } catch (error) {
     return { success: false, error: 'Error al actualizar: ' + error.toString() };
   }
+}
+
+function updateRecordNoLock_(sheetName, idColumn, id, data) {
+  var sheet = getSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) throw new Error('No existe la hoja ' + sheetName);
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0];
+  var idIndex = headers.indexOf(idColumn);
+  if (idIndex === -1) throw new Error('No existe la columna identificadora.');
+  for (var rowIndex = 1; rowIndex < values.length; rowIndex++) {
+    if (String(values[rowIndex][idIndex]) !== String(id)) continue;
+    var updatedRow = values[rowIndex].slice();
+    headers.forEach(function(header, columnIndex) {
+      if (header !== idColumn && Object.prototype.hasOwnProperty.call(data, header)) {
+        updatedRow[columnIndex] = normalizeRecordField_(sheetName, header, data[header]);
+      }
+    });
+    sheet.getRange(rowIndex + 1, 1, 1, headers.length).setValues([updatedRow]);
+    return { success: true, message: 'Registro actualizado correctamente.' };
+  }
+  throw new Error('No se encontró el registro solicitado.');
 }
 
 function deleteRecord_(sheetName, idColumn, id) {
@@ -80,7 +95,7 @@ function normalizeRecordField_(sheetName, field, value) {
   if (dateFields.indexOf(field) !== -1 && value) return cleanDate_(value, field);
   if (numericFields.indexOf(field) !== -1) return cleanNumber_(value, field, field === 'Superficie_m2' ? 0.1 : 0);
   if (field === 'ID_Huerto') return assertHuertoExists_(value);
-  if (field === 'Tipo_Huerto') return requireOption_(value, ['Urbano', 'Familiar', 'Comunitario'], field);
+  if (field === 'Tipo_Huerto') return assertConfiguredOption_('TIPO_HUERTO', value, field);
   if (field === 'Estado' && sheetName === 'HUERTOS') return requireOption_(value, ['Activo', 'Inactivo'], field);
   if (field === 'Estado' && sheetName === 'LABORES_PROGRAMADAS') return requireOption_(value, ['Programada', 'Realizada'], field);
   if (field === 'Categoria') return validateConfigCategory_(value);

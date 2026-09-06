@@ -1,10 +1,11 @@
 var ESQUEMA_BASE_DATOS = {
-  HUERTOS: ['ID_Huerto', 'Nombre_Cliente', 'Ubicacion', 'Superficie_m2', 'Tipo_Huerto', 'Cobertura_Huerto', 'Fecha_Inicio', 'Estado'],
-  BITACORA_CULTURAL: ['ID_Labor', 'ID_Huerto', 'Fecha', 'Tipo_Labor', 'Descripcion_Tecnica', 'Horas_Invertidas'],
+  HUERTOS: ['ID_Huerto', 'Nombre_Cliente', 'Ubicacion', 'Superficie_m2', 'Tipo_Huerto', 'Fecha_Inicio', 'Estado'],
+  HUERTO_CULTIVOS: ['ID_Cultivo', 'ID_Huerto', 'Nombre', 'Variedad', 'Sector', 'Estado'],
+  BITACORA_CULTURAL: ['ID_Labor', 'ID_Huerto', 'ID_Cultivo', 'Cultivo', 'Fecha', 'Tipo_Labor', 'Descripcion_Tecnica', 'Horas_Invertidas'],
   BITACORA_FITOSANITARIA: ['ID_Aplicacion', 'ID_Huerto', 'Fecha', 'Problema_Objetivo', 'Producto_Aplicado', 'Dosis_Utilizada', 'Eficacia_Observada', 'Cultivos_Tratados', 'Superficie_Tratada_m2', 'Volumen_100m2_L', 'Capacidad_Estanque_L', 'Dosis_100L', 'Unidad_Producto', 'Agua_Total_L', 'Numero_Cargas', 'Producto_Total', 'ID_Agroquimico', 'ID_Version', 'ID_Uso', 'Tipo_Aplicacion', 'Ingrediente_Activo_Snapshot', 'Tipo_Producto_Snapshot', 'Sectores_Aplicacion', 'Tipo_Objetivo', 'Malezas_Objetivo', 'Metodo_Aplicacion', 'Aplicador', 'Condiciones_Meteorologicas', 'Periodo_Carencia_Snapshot', 'Tiempo_Reingreso_Snapshot', 'Fuera_Rango', 'Justificacion_Excepcion', 'Autorizado_Por', 'Fecha_Creacion', 'Creado_Por', 'Estado_Registro'],
   MAESTRO_INSUMOS: ['ID_Insumo', 'Nombre_Producto', 'Ingrediente_Activo', 'Tipo'],
   CONFIGURACION: ['ID_Configuracion', 'Categoria', 'Nombre', 'Activo'],
-  LABORES_PROGRAMADAS: ['ID_Programacion', 'ID_Huerto', 'Cultivo', 'Fecha_Programada', 'Tipo_Labor', 'Descripcion', 'Horas_Estimadas', 'Estado', 'Fecha_Realizacion'],
+  LABORES_PROGRAMADAS: ['ID_Programacion', 'ID_Huerto', 'Fecha_Programada', 'Tipo_Labor', 'Descripcion', 'Horas_Estimadas', 'Estado', 'Fecha_Realizacion'],
   AGROQUIMICOS: ['ID_Agroquimico', 'Nombre_Comercial', 'Nombre_Normalizado', 'Ingrediente_Activo', 'Concentracion', 'Formulacion', 'Tipo_Producto', 'Fabricante', 'Proveedor', 'Numero_Registro', 'Estado', 'ID_Version_Activa', 'Fecha_Creacion', 'Creado_Por', 'Fecha_Modificacion', 'Modificado_Por'],
   AGROQUIMICOS_VERSIONES: ['ID_Version', 'ID_Agroquimico', 'Numero_Version', 'Fecha_Documento', 'Periodo_Carencia', 'Tiempo_Reingreso', 'Maximo_Aplicaciones', 'Intervalo_Aplicaciones', 'Compatibilidades', 'Incompatibilidades', 'Precauciones', 'EPP', 'Almacenamiento', 'Estado_Revision', 'Confirmado_Por', 'Fecha_Confirmacion'],
   AGROQUIMICOS_USOS: ['ID_Uso', 'ID_Version', 'ID_Agroquimico', 'Tipo_Aplicacion', 'Tipo_Destino', 'Destino', 'Tipo_Objetivo', 'Objetivo', 'Dosis_Minima', 'Dosis_Maxima', 'Unidad_Dosis', 'Volumen_Agua_Min', 'Volumen_Agua_Max', 'Metodo_Aplicacion', 'Momento_Aplicacion', 'Carencia_Dias', 'Reingreso_Horas', 'Restricciones', 'Activo'],
@@ -60,6 +61,74 @@ function assertHuertoExists_(id) {
   return huertoId;
 }
 
+function assertSuperficieTratada_(huertoId, superficie) {
+  var huerto = getSheetDataAsObjects(getSpreadsheet().getSheetByName('HUERTOS')).filter(function(item) { return String(item.ID_Huerto) === String(huertoId); })[0];
+  var treated = cleanNumber_(superficie, 'Superficie tratada', 0.1);
+  var maximum = Number(huerto && huerto.Superficie_m2);
+  if (!huerto || !isFinite(maximum) || maximum <= 0) throw new Error('El huerto no tiene una superficie válida configurada.');
+  if (treated > maximum) throw new Error('La superficie tratada no puede superar los ' + maximum + ' m² del huerto.');
+  return treated;
+}
+
+function assertConfiguredOption_(category, value, field) {
+  var name = cleanText_(value, field, true);
+  var exists = getSheetDataAsObjects(getSpreadsheet().getSheetByName('CONFIGURACION')).some(function(item) {
+    return item.Categoria === category && item.Nombre === name && (item.Activo === true || item.Activo === 'TRUE');
+  });
+  if (!exists) throw new Error('El valor de "' + field + '" no está disponible en la configuración.');
+  return name;
+}
+
+function getHuertoCultivos_(huertoId, activeOnly) {
+  var items = getSheetDataAsObjects(getSpreadsheet().getSheetByName('HUERTO_CULTIVOS'))
+    .filter(function(item) { return String(item.ID_Huerto) === String(huertoId); });
+  return activeOnly ? items.filter(function(item) { return item.Estado === 'Activo'; }) : items;
+}
+
+function assertCultivoCoberturaOption_(value) {
+  var name = cleanText_(value, 'Cultivo o cobertura', true);
+  var exists = getSheetDataAsObjects(getSpreadsheet().getSheetByName('CONFIGURACION')).some(function(item) {
+    return (item.Categoria === 'CULTIVO' || item.Categoria === 'COBERTURA') && item.Nombre === name && (item.Activo === true || item.Activo === 'TRUE');
+  });
+  if (!exists) throw new Error('Seleccione un cultivo o cobertura disponible en Configuración.');
+  return name;
+}
+
+function assertCultivoDeHuerto_(huertoId, cultivoId) {
+  var id = cleanText_(cultivoId, 'Cultivo', true);
+  var cultivo = getHuertoCultivos_(huertoId, true).filter(function(item) { return String(item.ID_Cultivo) === id; })[0];
+  if (!cultivo) throw new Error('El cultivo seleccionado no está activo o no pertenece al huerto.');
+  return cultivo;
+}
+
+function cleanCultivosDeHuerto_(huertoId, value) {
+  var names = cleanSelectionList_(value, 'Cultivos tratados').split(' · ');
+  var allowed = getHuertoCultivos_(huertoId, true).map(function(item) { return item.Nombre; });
+  if (!allowed.length) throw new Error('El huerto no tiene cultivos activos. Agréguelos antes de registrar una aplicación.');
+  names.forEach(function(name) {
+    if (allowed.indexOf(name) === -1) throw new Error('El cultivo "' + name + '" no pertenece al huerto seleccionado.');
+  });
+  return names.join(' · ');
+}
+
+function syncHuertoCultivos_(huertoId, cultivos) {
+  if (!Array.isArray(cultivos)) return;
+  var sheet = getSpreadsheet().getSheetByName('HUERTO_CULTIVOS');
+  var existing = getHuertoCultivos_(huertoId, false);
+  var receivedIds = [];
+  cultivos.forEach(function(item) {
+    var name = assertCultivoCoberturaOption_(item.Nombre);
+    var id = String(item.ID_Cultivo || 'CUL-' + Utilities.getUuid().slice(0, 8).toUpperCase());
+    var record = { ID_Cultivo: id, ID_Huerto: huertoId, Nombre: name, Variedad: cleanText_(item.Variedad, 'Variedad', false), Sector: cleanText_(item.Sector, 'Sector', false), Estado: requireOption_(item.Estado || 'Activo', ['Activo', 'Inactivo'], 'Estado del cultivo') };
+    receivedIds.push(id);
+    if (existing.some(function(current) { return String(current.ID_Cultivo) === id; })) updateObjectRowNoLock_('HUERTO_CULTIVOS', 'ID_Cultivo', id, record);
+    else appendObjectRow_(sheet, record);
+  });
+  existing.filter(function(item) { return receivedIds.indexOf(String(item.ID_Cultivo)) === -1; }).forEach(function(item) {
+    updateObjectRowNoLock_('HUERTO_CULTIVOS', 'ID_Cultivo', item.ID_Cultivo, { Estado: 'Inactivo' });
+  });
+}
+
 function setupDatabase() {
   try {
     return withDocumentLock_(function() {
@@ -77,6 +146,7 @@ function setupDatabase() {
         sheet.setFrozenRows(1);
       });
       seedDefaultConfiguration_(spreadsheet.getSheetByName('CONFIGURACION'));
+      migrateLegacyHuertoCultivos_(spreadsheet);
       seedFitosanitarioCatalogs_(spreadsheet);
       migrateLegacyProducts_(spreadsheet);
       return { success: true, message: 'Base de datos inicializada correctamente.' };
@@ -158,6 +228,14 @@ function seedDefaultConfiguration_(sheet) {
     ['CFG-LAB-FERT', 'LABOR', 'Fertilización', true],
     ['CFG-LAB-DESM', 'LABOR', 'Desmalezado', true],
     ['CFG-LAB-SIEM', 'LABOR', 'Siembra / Trasplante', true],
+    ['CFG-HUE-URB', 'TIPO_HUERTO', 'Urbano', true],
+    ['CFG-HUE-FAM', 'TIPO_HUERTO', 'Familiar', true],
+    ['CFG-HUE-COM', 'TIPO_HUERTO', 'Comunitario', true],
+    ['CFG-HUE-JAR', 'TIPO_HUERTO', 'Jardín', true],
+    ['CFG-APL-FITO', 'TIPO_APLICACION', 'Aplicación fitosanitaria', true],
+    ['CFG-APL-MAL', 'TIPO_APLICACION', 'Control químico de malezas', true],
+    ['CFG-APL-PLA', 'TIPO_APLICACION', 'Control de plagas', true],
+    ['CFG-APL-ENF', 'TIPO_APLICACION', 'Control de enfermedades', true],
     ['CFG-PROD-JABON', 'PRODUCTO', 'Jabón Potásico', true],
     ['CFG-PROD-NEEM', 'PRODUCTO', 'Aceite de Neem', true],
     ['CFG-CUL-FLORES', 'CULTIVO', 'Flores', true],
@@ -168,14 +246,28 @@ function seedDefaultConfiguration_(sheet) {
     ['CFG-CUL-CESPED', 'CULTIVO', 'Césped', true],
     ['CFG-CUL-ORNAM', 'CULTIVO', 'Plantas ornamentales', true],
     ['CFG-CUL-JARDIN', 'CULTIVO', 'Jardín general', true],
-    ['CFG-HUE-URB', 'TIPO_HUERTO', 'Urbano', true], ['CFG-HUE-FAM', 'TIPO_HUERTO', 'Familiar', true], ['CFG-HUE-COM', 'TIPO_HUERTO', 'Comunitario', true],
-    ['CFG-COB-MULCH', 'COBERTURA', 'Mulch orgánico', true], ['CFG-COB-VEGETAL', 'COBERTURA', 'Cobertura vegetal', true], ['CFG-COB-PIEDRA', 'COBERTURA', 'Grava o piedra', true], ['CFG-COB-GEOTEXTIL', 'COBERTURA', 'Geotextil', true], ['CFG-COB-SUELO', 'COBERTURA', 'Suelo desnudo', true]
+    ['CFG-COB-MULCH', 'COBERTURA', 'Mulch orgánico', true],
+    ['CFG-COB-VEGETAL', 'COBERTURA', 'Cobertura vegetal', true],
+    ['CFG-COB-PIEDRA', 'COBERTURA', 'Grava o piedra', true],
+    ['CFG-COB-GEOTEXTIL', 'COBERTURA', 'Geotextil', true],
+    ['CFG-COB-SUELO', 'COBERTURA', 'Suelo desnudo', true]
   ];
   var existingIds = sheet.getLastRow() > 1
     ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getDisplayValues().map(function(row) { return row[0]; })
     : [];
   var missing = defaults.filter(function(row) { return existingIds.indexOf(row[0]) === -1; });
   if (missing.length) sheet.getRange(sheet.getLastRow() + 1, 1, missing.length, missing[0].length).setValues(missing);
+}
+
+function migrateLegacyHuertoCultivos_(spreadsheet) {
+  var config = spreadsheet.getSheetByName('CONFIGURACION');
+  var existing = getSheetDataAsObjects(config).reduce(function(index, item) { index['CULTIVO|' + normalizeCatalogName_(item.Nombre)] = true; return index; }, {});
+  getSheetDataAsObjects(spreadsheet.getSheetByName('HUERTO_CULTIVOS')).forEach(function(item) {
+    var name = String(item.Nombre || '').trim(), key = 'CULTIVO|' + normalizeCatalogName_(name);
+    if (!name || existing[key]) return;
+    config.appendRow(['CFG-' + Utilities.getUuid().slice(0, 8).toUpperCase(), 'CULTIVO', name, true]);
+    existing[key] = true;
+  });
 }
 
 function getSheetDataAsObjects(sheet) {
@@ -200,6 +292,7 @@ function getInitialData() {
     return {
       success: true,
       huertos: getSheetDataAsObjects(spreadsheet.getSheetByName('HUERTOS')),
+      huertoCultivos: getSheetDataAsObjects(spreadsheet.getSheetByName('HUERTO_CULTIVOS')),
       culturalLogs: getSheetDataAsObjects(spreadsheet.getSheetByName('BITACORA_CULTURAL')),
       fitosanitarioLogs: getSheetDataAsObjects(spreadsheet.getSheetByName('BITACORA_FITOSANITARIA')),
       insumos: getSheetDataAsObjects(spreadsheet.getSheetByName('MAESTRO_INSUMOS')),

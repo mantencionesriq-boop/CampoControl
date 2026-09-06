@@ -30,14 +30,16 @@ createApp({
     const calendarioEstado = ref('TODAS');
     const calendarioTipo = ref('TODAS');
     const calendarioHuerto = ref('TODOS');
+    window.panelHuertoId = ref('TODOS');
     const fitoCultivoFilter = ref('TODOS');
     const configCategoriaFilter = ref('TODAS');
-    const huertos = ref([]), culturalLogs = ref([]), fitosanitarioLogs = ref([]), insumos = ref([]);
+    const filtroAgro = ref('');
+    const huertos = ref([]), huertoCultivos = ref([]), culturalLogs = ref([]), fitosanitarioLogs = ref([]), insumos = ref([]);
     const configuraciones = ref([]), laboresProgramadas = ref([]);
     const agroquimicos = ref([]), agroquimicosVersiones = ref([]), agroquimicosUsos = ref([]), agroquimicosDocumentos = ref([]), malezas = ref([]), sectoresAplicacion = ref([]);
     const alert = ref({ show: false, type: 'success', title: '', message: '' });
     const formHuerto = ref(AppUtils.newHuerto()), formCultural = ref(AppUtils.newCultural()), formFito = ref(AppUtils.newFitosanitario());
-    const formProgramacion = ref({ ID_Programacion: '', ID_Huerto: '', Cultivo: '', Fecha_Programada: AppUtils.today(), Tipo_Labor: '', Descripcion: '', Horas_Estimadas: 1 });
+    const formProgramacion = ref({ ID_Programacion: '', ID_Huerto: '', Fecha_Programada: AppUtils.today(), Tipo_Labor: '', Descripcion: '', Horas_Estimadas: 1 });
     const formConfiguracion = ref({ ID_Configuracion: '', Categoria: 'LABOR', Nombre: '', Activo: true });
     const formCategoria = ref({ ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true });
     const agroView = ref('list'), agroTab = ref('general'), selectedAgroId = ref(''), extractedReview = ref(null), agroDirty = ref(false);
@@ -45,13 +47,23 @@ createApp({
     const formAgro = ref({ ID_Agroquimico: '', Nombre_Comercial: '', Ingrediente_Activo: '', Concentracion: '', Formulacion: '', Tipo_Producto: 'Herbicida', Fabricante: '', Proveedor: '', Numero_Registro: '', Estado: 'Activo' });
     const formUso = ref({ ID_Uso: '', ID_Agroquimico: '', Tipo_Aplicacion: 'Control químico de malezas', Tipo_Destino: 'Sector', Destino: '', Tipo_Objetivo: 'Malezas en general', Objetivo: '', Dosis_Minima: 0, Dosis_Maxima: 0, Unidad_Dosis: 'ml/100 L', Volumen_Agua_Min: '', Volumen_Agua_Max: '', Metodo_Aplicacion: 'Dirigida', Momento_Aplicacion: '', Carencia_Dias: 0, Reingreso_Horas: 0, Restricciones: '', Activo: true });
     const formMaleza = ref({ Nombre_Comun: '', Nombre_Cientifico: '', Grupo: '', Ciclo: '', Activo: true }), formSector = ref({ Nombre: '', Descripcion: '', Activo: true });
+    const formulacionesSAG = FORMULACIONES_SAG;
     const otroTipoCultural = ref(''), otroProductoFito = ref(''), otroTipoProgramacion = ref('');
     const tiposLabor = computed(() => configuraciones.value.filter(x => x.Categoria === 'LABOR' && x.Activo));
+    window.tiposHuerto = computed(() => configuraciones.value.filter(x => x.Categoria === 'TIPO_HUERTO' && x.Activo));
+    window.tiposAplicacion = computed(() => configuraciones.value.filter(x => x.Categoria === 'TIPO_APLICACION' && x.Activo));
     const productosAplicados = computed(() => configuraciones.value.filter(x => x.Categoria === 'PRODUCTO' && x.Activo));
     const cultivosDisponibles = computed(() => configuraciones.value.filter(x => x.Categoria === 'CULTIVO' && x.Activo));
-    const tiposHuerto = computed(() => configuraciones.value.filter(x => x.Categoria === 'TIPO_HUERTO' && x.Activo));
-    const superficieHuertoSeleccionado = computed(() => { const h = huertos.value.find(x => x.ID_Huerto === formFito.value.ID_Huerto); return h ? Number(h.Superficie_m2) || null : null; });
+    const cultivosDelHuerto = id => huertoCultivos.value.filter(cultivo => String(cultivo.ID_Huerto) === String(id) && cultivo.Estado === 'Activo');
     const agroquimicosActivos = computed(() => agroquimicos.value.filter(x => x.Estado !== 'Inactivo'));
+    const agroquimicosFiltrados = computed(() => {
+      const query = String(filtroAgro.value || '').trim().toLowerCase();
+      if (!query) return agroquimicos.value;
+      return agroquimicos.value.filter(producto =>
+        [producto.Nombre_Comercial, producto.Ingrediente_Activo, producto.Tipo_Producto, producto.Formulacion, producto.Fabricante]
+          .some(valor => String(valor || '').toLowerCase().includes(query))
+      );
+    });
     const ingredientesRegistrados = computed(() => [...new Set(agroquimicos.value.map(x => x.Ingrediente_Activo).filter(Boolean))].sort());
     const formulacionesRegistradas = computed(() => [...new Set(agroquimicos.value.map(x => x.Formulacion).filter(Boolean))].sort());
     const fabricantesRegistrados = computed(() => [...new Set(agroquimicos.value.map(x => x.Fabricante).filter(Boolean))].sort());
@@ -80,16 +92,18 @@ createApp({
       return String(Number(value.slice(5, 7)) >= 9 ? year : year - 1);
     }
     const perteneceTemporada = date => temporadaSeleccionada.value === 'TODAS' || getSeasonStart(date) === temporadaSeleccionada.value;
-    const culturalesTemporada = computed(() => culturalLogs.value.filter(item => perteneceTemporada(item.Fecha)));
-    const fitosanitariosTemporada = computed(() => fitosanitarioLogs.value.filter(item => perteneceTemporada(item.Fecha)));
-    const programacionesTemporada = computed(() => laboresProgramadas.value.filter(item => perteneceTemporada(item.Fecha_Programada)));
+    const coincideHuertoPanel = item => window.panelHuertoId.value === 'TODOS' || String(item.ID_Huerto) === String(window.panelHuertoId.value);
+    const culturalesTemporada = computed(() => culturalLogs.value.filter(item => perteneceTemporada(item.Fecha) && coincideHuertoPanel(item)));
+    const fitosanitariosTemporada = computed(() => fitosanitarioLogs.value.filter(item => perteneceTemporada(item.Fecha) && coincideHuertoPanel(item)));
+    const programacionesTemporada = computed(() => laboresProgramadas.value.filter(item => perteneceTemporada(item.Fecha_Programada) && coincideHuertoPanel(item)));
     const culturalHistorial = computed(() => culturalesTemporada.value.filter(item => !(String(item.Fecha) > serverToday.value)));
     const calendarioCompleto = computed(() => {
       const programadas = programacionesTemporada.value.map(item => ({ ...item, clave: 'PRG-' + item.ID_Programacion, origen: 'PROGRAMADA' }));
       const culturalesFuturas = culturalesTemporada.value
         .filter(item => String(item.Fecha) > serverToday.value)
         .map(item => ({ ...item, clave: 'LAB-' + item.ID_Labor, origen: 'CULTURAL', Fecha_Programada: item.Fecha, Estado: 'Registrada' }));
-      return [...programadas, ...culturalesFuturas].map(item => ({ ...item, EstadoVista: getEstadoCalendario(item) })).sort((a, b) => String(a.Fecha_Programada).localeCompare(String(b.Fecha_Programada)));
+      const aplicaciones = fitosanitarioLogs.value.map(item => ({ ...item, clave: 'FIT-' + item.ID_Aplicacion, origen: 'FITOSANITARIO', Fecha_Programada: item.Fecha, Tipo_Labor: (item.Tipo_Aplicacion || 'Aplicación') + ': ' + item.Producto_Aplicado, Estado: 'Aplicación registrada' }));
+      return [...programadas, ...culturalesFuturas, ...aplicaciones].map(item => ({ ...item, EstadoVista: getEstadoCalendario(item) })).sort((a, b) => String(a.Fecha_Programada).localeCompare(String(b.Fecha_Programada)));
     });
     const tiposCalendario = computed(() => [...new Set(calendarioCompleto.value.map(x => x.Tipo_Labor).filter(Boolean))].sort());
     const calendarioLabores = computed(() => calendarioCompleto.value.filter(item => {
@@ -117,9 +131,9 @@ createApp({
     const laboresRealizadas = computed(() => calendarioCompleto.value.filter(x => x.EstadoVista === 'REALIZADA').length);
     const laboresPendientes = computed(() => calendarioCompleto.value.filter(x => x.EstadoVista === 'PENDIENTE').length);
     const fertilizacionesRealizadas = computed(() => culturalesTemporada.value.filter(x => x.Tipo_Labor === 'Fertilización').length);
-    const huertosActivos = computed(() => huertos.value.filter(x => x.Estado === 'Activo').length);
+    const huertosActivos = computed(() => huertos.value.filter(x => x.Estado === 'Activo' && (window.panelHuertoId.value === 'TODOS' || String(x.ID_Huerto) === String(window.panelHuertoId.value))).length);
     const totalHorasCulturales = computed(() => culturalesTemporada.value.reduce((sum, x) => sum + (Number(x.Horas_Invertidas) || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 1 }));
-    const superficieActiva = computed(() => huertos.value.filter(x => x.Estado === 'Activo').reduce((sum, x) => sum + (Number(x.Superficie_m2) || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 1 }));
+    const superficieActiva = computed(() => huertos.value.filter(x => x.Estado === 'Activo' && (window.panelHuertoId.value === 'TODOS' || String(x.ID_Huerto) === String(window.panelHuertoId.value))).reduce((sum, x) => sum + (Number(x.Superficie_m2) || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 1 }));
     const tasaCumplimiento = computed(() => programacionesTemporada.value.length ? Math.round(laboresRealizadas.value / programacionesTemporada.value.length * 100) : 0);
 
     const showAlert = (title, message, type = 'success') => Swal.fire({ title, text: String(message || ''), icon: type === 'danger' ? 'error' : type, confirmButtonText: 'Aceptar', confirmButtonColor: '#198754', customClass: { popup: 'campocontrol-swal' } });
@@ -135,7 +149,7 @@ createApp({
     const nuevoHuerto = () => { formHuerto.value = AppUtils.newHuerto(); openDrawer('huerto'); };
     const nuevaCultural = () => { formCultural.value = AppUtils.newCultural(); openDrawer('cultural'); };
     const nuevoFitosanitario = () => { formFito.value = AppUtils.newFitosanitario(); openDrawer('fitosanitario'); };
-    const nuevaProgramacion = () => { formProgramacion.value = { ID_Programacion: '', ID_Huerto: '', Cultivo: '', Fecha_Programada: serverToday.value, Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1 }; openDrawer('programacion'); };
+    const nuevaProgramacion = () => { formProgramacion.value = { ID_Programacion: '', ID_Huerto: '', Fecha_Programada: serverToday.value, Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1 }; openDrawer('programacion'); };
     const nuevaConfiguracion = () => { formConfiguracion.value = { ID_Configuracion: '', Categoria: 'LABOR', Nombre: '', Activo: true }; openDrawer('configuracion'); };
     const nuevaCategoria = () => { formCategoria.value = { ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true }; openDrawer('categoria'); };
     const getHuertoNombre = id => (huertos.value.find(x => x.ID_Huerto === id) || {}).Nombre_Cliente || id;
@@ -156,7 +170,7 @@ createApp({
       try {
         const response = await ServerApi.call('getInitialData');
         if (!response.success) throw new Error(response.error);
-        huertos.value = response.huertos; culturalLogs.value = response.culturalLogs; fitosanitarioLogs.value = response.fitosanitarioLogs; insumos.value = response.insumos;
+        huertos.value = response.huertos; huertoCultivos.value = response.huertoCultivos || []; culturalLogs.value = response.culturalLogs; fitosanitarioLogs.value = response.fitosanitarioLogs; insumos.value = response.insumos;
         configuraciones.value = response.configuraciones; laboresProgramadas.value = response.laboresProgramadas;
         agroquimicos.value = response.agroquimicos || []; agroquimicosVersiones.value = response.agroquimicosVersiones || []; agroquimicosUsos.value = response.agroquimicosUsos || []; agroquimicosDocumentos.value = response.agroquimicosDocumentos || []; malezas.value = response.malezas || []; sectoresAplicacion.value = response.sectoresAplicacion || [];
         serverToday.value = response.today || AppUtils.today();
@@ -185,7 +199,7 @@ createApp({
     const submitHuerto = () => submit(formHuerto.value.ID_Huerto ? 'updateHuerto' : 'addHuerto', formHuerto, AppUtils.newHuerto.bind(AppUtils));
     const submitCultural = async () => { try { await saveOtherOption(formCultural, 'Tipo_Labor', 'LABOR', otroTipoCultural); await submit(formCultural.value.ID_Labor ? 'updateBitacoraCultural' : 'addBitacoraCultural', formCultural, AppUtils.newCultural.bind(AppUtils)); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } };
     const submitFitosanitario = async () => { try { const product = agroquimicoAplicacion.value; if (!product) throw new Error('Seleccione un agroquímico registrado.'); formFito.value.Producto_Aplicado = product.Nombre_Comercial; formFito.value.Agua_Total_L = calculoFito.value.water; formFito.value.Numero_Cargas = calculoFito.value.loads; formFito.value.Producto_Total = calculoFito.value.totalProduct; formFito.value.Dosis_Utilizada = formFito.value.Dosis_100L + ' ' + formFito.value.Unidad_Producto + '/100 L · Total ' + calculoFito.value.totalProduct + ' ' + formFito.value.Unidad_Producto; await submit(formFito.value.ID_Aplicacion ? 'updateBitacoraFitosanitaria' : 'addBitacoraFitosanitaria', formFito, AppUtils.newFitosanitario.bind(AppUtils)); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } };
-    const submitProgramacion = async () => { try { await saveOtherOption(formProgramacion, 'Tipo_Labor', 'LABOR', otroTipoProgramacion); await submit('saveLaborProgramada', formProgramacion, () => ({ ID_Programacion: '', ID_Huerto: '', Cultivo: '', Fecha_Programada: AppUtils.today(), Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1 })); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } };
+    const submitProgramacion = async () => { try { await saveOtherOption(formProgramacion, 'Tipo_Labor', 'LABOR', otroTipoProgramacion); await submit('saveLaborProgramada', formProgramacion, () => ({ ID_Programacion: '', ID_Huerto: '', Fecha_Programada: AppUtils.today(), Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1 })); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } };
     const submitConfiguracion = () => submit('saveConfiguracion', formConfiguracion, () => ({ ID_Configuracion: '', Categoria: 'LABOR', Nombre: '', Activo: true }));
     const submitCategoria = () => submit('saveConfiguracion', formCategoria, () => ({ ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true }));
     const nuevoAgroquimico = () => { formAgro.value = { ID_Agroquimico: '', Nombre_Comercial: '', Ingrediente_Activo: '', Concentracion: '', Formulacion: '', Tipo_Producto: 'Herbicida', Fabricante: '', Proveedor: '', Numero_Registro: '', Estado: 'Activo' }; selectedAgroId.value = ''; agroTab.value = 'general'; agroView.value = 'form'; extractedReview.value = null; agroDirty.value = false; documentUpload.value = { active: false, type: '', message: '' }; };
@@ -214,10 +228,12 @@ createApp({
     const cargarDocumentoAgro = event => { const input = event.target, file = input.files[0]; if (!file) return; const allowed = ['application/pdf','image/jpeg','image/png']; if (allowed.indexOf(file.type) === -1) { documentUpload.value = { active: true, type: 'danger', message: 'Formato no permitido. Use PDF, JPG o PNG.' }; input.value = ''; return; } if (file.size > 10 * 1024 * 1024) { documentUpload.value = { active: true, type: 'danger', message: 'El archivo supera el máximo de 10 MB.' }; input.value = ''; return; } documentUpload.value = { active: true, type: 'processing', message: 'Leyendo ' + file.name + '…' }; const reader = new FileReader(); reader.onerror = () => { documentUpload.value = { active: true, type: 'danger', message: 'El navegador no pudo leer el archivo.' }; input.value = ''; }; reader.onload = async () => { submitting.value = true; documentUpload.value = { active: true, type: 'processing', message: 'Cargando en Google Drive y extrayendo la información. Este proceso puede tardar hasta un minuto…' }; try { const response = await ServerApi.call('uploadAgroquimicoDocument', { ID_Agroquimico: selectedAgroId.value, Tipo_Documento: 'Ficha técnica', fileName: file.name, mimeType: file.type, base64: String(reader.result).split(',')[1] }); if (!response.success) throw new Error(response.error); extractedReview.value = response.extracted; documentUpload.value = { active: true, type: 'success', message: response.message + (response.warning ? ' ' + response.warning : '') }; showAlert('Documento procesado', response.message, response.warning ? 'warning' : 'success'); await loadServerData(); } catch (error) { const message = error.message || error.toString(); documentUpload.value = { active: true, type: 'danger', message: message }; showAlert('Error al cargar', message, 'danger'); } finally { submitting.value = false; input.value = ''; } }; reader.readAsDataURL(file); };
     const aplicarExtraccion = () => { if (!extractedReview.value) return; ['Nombre_Comercial','Ingrediente_Activo','Concentracion','Formulacion','Fabricante','Numero_Registro'].forEach(field => { if (extractedReview.value[field]) formAgro.value[field] = extractedReview.value[field]; }); agroDirty.value = true; agroTab.value = 'general'; showAlert('Datos propuestos', 'Revise y guarde la ficha para confirmar la información extraída.'); };
     const seleccionarAgroAplicacion = () => { const product = agroquimicoAplicacion.value; formFito.value.Producto_Aplicado = product ? product.Nombre_Comercial : ''; formFito.value.ID_Uso = ''; };
+    const seleccionarHuertoCultural = () => { formCultural.value.ID_Cultivo = ''; };
+    const seleccionarHuertoFito = () => { formFito.value.Cultivos_Tratados = []; };
     const seleccionarUsoAplicacion = () => { const use = usoAplicacion.value; if (!use) return; formFito.value.Dosis_100L = Number(use.Dosis_Minima) || 0; formFito.value.Problema_Objetivo = use.Objetivo || formFito.value.Problema_Objetivo; formFito.value.Metodo_Aplicacion = use.Metodo_Aplicacion || formFito.value.Metodo_Aplicacion; if (use.Volumen_Agua_Min) formFito.value.Volumen_100m2_L = Number(use.Volumen_Agua_Min); formFito.value.Unidad_Producto = use.Unidad_Dosis.indexOf('kg') === 0 || use.Unidad_Dosis.indexOf('g/') === 0 ? (use.Unidad_Dosis.indexOf('kg') === 0 ? 'kg' : 'g') : (use.Unidad_Dosis.indexOf('L/') === 0 ? 'L' : 'ml'); };
     const editarProgramacion = record => { formProgramacion.value = { ...record }; openDrawer('programacion'); };
     const editarConfiguracion = record => { formConfiguracion.value = { ...record, Activo: record.Activo === true || record.Activo === 'TRUE' }; openDrawer('configuracion'); };
-    const editarHuerto = record => { formHuerto.value = { ...AppUtils.newHuerto(), ...record, Cobertura_Huerto: record.Cobertura_Huerto || 'Mulch orgánico' }; openDrawer('huerto'); };
+    const editarHuerto = record => { formHuerto.value = { ...record, Cultivos: huertoCultivos.value.filter(cultivo => String(cultivo.ID_Huerto) === String(record.ID_Huerto)).map(cultivo => ({ ...cultivo })) }; openDrawer('huerto'); };
     const editarCultural = record => { formCultural.value = { ...record }; openDrawer('cultural'); };
     const editarFitosanitario = record => { formFito.value = { ...AppUtils.newFitosanitario(), ...record, Cultivos_Tratados: getCultivos(record), Sectores_Aplicacion: String(record.Sectores_Aplicacion || '').split(' · ').filter(Boolean), Malezas_Objetivo: String(record.Malezas_Objetivo || '').split(' · ').filter(Boolean) }; openDrawer('fitosanitario'); };
     const eliminarCultural = async id => {
@@ -240,15 +256,18 @@ createApp({
     };
     const editarLaborCalendario = labor => {
       if (labor.origen === 'PROGRAMADA') editarProgramacion(labor);
-      else { openTab('cultural'); editarCultural(labor); }
+      else if (labor.origen === 'CULTURAL') { openTab('cultural'); editarCultural(labor); }
+      else { openTab('fitosanitario'); editarFitosanitario(labor); }
     };
     const eliminarLaborCalendario = async labor => {
       if (!(await confirmAction('Eliminar labor', 'Se eliminará esta labor del calendario. Esta acción no se puede deshacer.'))) return;
-      return eliminarLabor(labor.origen === 'PROGRAMADA' ? 'deleteLaborProgramada' : 'deleteBitacoraCultural', labor.origen === 'PROGRAMADA' ? labor.ID_Programacion : labor.ID_Labor);
+      const method = labor.origen === 'PROGRAMADA' ? 'deleteLaborProgramada' : labor.origen === 'CULTURAL' ? 'deleteBitacoraCultural' : 'deleteBitacoraFitosanitaria';
+      const id = labor.origen === 'PROGRAMADA' ? labor.ID_Programacion : labor.origen === 'CULTURAL' ? labor.ID_Labor : labor.ID_Aplicacion;
+      return eliminarLabor(method, id);
     };
     const completarProgramacion = async id => { submitting.value = true; try { const response = await ServerApi.call('completeLaborProgramada', id); if (!response.success) throw new Error(response.error); showAlert('Labor realizada', response.message); await loadServerData(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
     watch(temporadaSeleccionada, () => { if (currentTab.value === 'panel') setTimeout(renderDashboard, 0); });
     onMounted(loadServerData);
-    return { agroView, agroTab, selectedAgroId, extractedReview, documentUpload, agroDirty, formAgro, formUso, formMaleza, formSector, agroquimicos, agroquimicosVersiones, agroquimicosUsos, agroquimicosDocumentos, malezas, sectoresAplicacion, agroquimicosActivos, ingredientesRegistrados, formulacionesRegistradas, fabricantesRegistrados, proveedoresRegistrados, selectedAgro, usosAgroSeleccionado, documentosAgroSeleccionado, agroquimicoAplicacion, usosAplicacion, usoAplicacion, dosisFueraRango, currentTab, navigation, pageMeta, loading, submitting, temporadaSeleccionada, temporadasDisponibles, temporadaLabel, activeDrawer, panelDetail, panelDetailTitle, panelDetalleLabores, calendarioEstado, calendarioTipo, calendarioHuerto, fitoCultivoFilter, configCategoriaFilter, huertos, culturalLogs, culturalesTemporada, culturalHistorial, fitosanitarioLogs, fitosanitariosTemporada, fitosanitarioFiltrados, calculoFito, insumos, configuraciones, configuracionesFiltradas, categoriasPersonalizadas, laboresProgramadas, programacionesTemporada, calendarioLabores, tiposCalendario, formHuerto, formCultural, formFito, formProgramacion, formConfiguracion, formCategoria, otroTipoCultural, otroProductoFito, otroTipoProgramacion, tiposLabor, productosAplicados, cultivosDisponibles, laboresRealizadas, laboresPendientes, fertilizacionesRealizadas, huertosActivos, totalHorasCulturales, superficieActiva, tasaCumplimiento, alert, nuevoAgroquimico, editarAgroquimico, cargarAgroExistente, marcarFichaAgroSucia, cambiarAgroTab, volverAgroquimicos, guardarAgroquimico, eliminarAgroquimico, nuevoUsoAgroquimico, editarUsoAgroquimico, guardarUsoAgroquimico, guardarCatalogoFito, cargarDocumentoAgro, aplicarExtraccion, seleccionarAgroAplicacion, seleccionarUsoAplicacion, getHuertoNombre, getCultivos, loadServerData, openTab, abrirDetallePanel, cerrarDetallePanel, openDrawer, closeDrawer, nuevoHuerto, nuevaCultural, nuevoFitosanitario, nuevaProgramacion, nuevaConfiguracion, nuevaCategoria, submitHuerto, submitCultural, submitFitosanitario, submitProgramacion, submitConfiguracion, submitCategoria, editarProgramacion, editarConfiguracion, editarHuerto, editarCultural, editarFitosanitario, editarLaborCalendario, eliminarCultural, eliminarFitosanitario, eliminarLaborCalendario, completarProgramacion };
+    return { agroView, agroTab, selectedAgroId, extractedReview, documentUpload, agroDirty, formAgro, formUso, formMaleza, formSector, filtroAgro, agroquimicos, agroquimicosFiltrados, agroquimicosVersiones, agroquimicosUsos, agroquimicosDocumentos, malezas, sectoresAplicacion, agroquimicosActivos, ingredientesRegistrados, formulacionesRegistradas, formulacionesSAG, fabricantesRegistrados, proveedoresRegistrados, selectedAgro, usosAgroSeleccionado, documentosAgroSeleccionado, agroquimicoAplicacion, usosAplicacion, usoAplicacion, dosisFueraRango, currentTab, navigation, pageMeta, loading, submitting, temporadaSeleccionada, temporadasDisponibles, temporadaLabel, activeDrawer, panelDetail, panelDetailTitle, panelDetalleLabores, calendarioEstado, calendarioTipo, calendarioHuerto, fitoCultivoFilter, configCategoriaFilter, huertos, huertoCultivos, cultivosDelHuerto, culturalLogs, culturalesTemporada, culturalHistorial, fitosanitarioLogs, fitosanitariosTemporada, fitosanitarioFiltrados, calculoFito, insumos, configuraciones, configuracionesFiltradas, categoriasPersonalizadas, laboresProgramadas, programacionesTemporada, calendarioLabores, tiposCalendario, formHuerto, formCultural, formFito, formProgramacion, formConfiguracion, formCategoria, otroTipoCultural, otroProductoFito, otroTipoProgramacion, tiposLabor, productosAplicados, cultivosDisponibles, laboresRealizadas, laboresPendientes, fertilizacionesRealizadas, huertosActivos, totalHorasCulturales, superficieActiva, tasaCumplimiento, alert, nuevoAgroquimico, editarAgroquimico, cargarAgroExistente, marcarFichaAgroSucia, cambiarAgroTab, volverAgroquimicos, guardarAgroquimico, eliminarAgroquimico, nuevoUsoAgroquimico, editarUsoAgroquimico, guardarUsoAgroquimico, guardarCatalogoFito, cargarDocumentoAgro, aplicarExtraccion, seleccionarAgroAplicacion, seleccionarUsoAplicacion, seleccionarHuertoCultural, seleccionarHuertoFito, getHuertoNombre, getCultivos, loadServerData, openTab, abrirDetallePanel, cerrarDetallePanel, openDrawer, closeDrawer, nuevoHuerto, nuevaCultural, nuevoFitosanitario, nuevaProgramacion, nuevaConfiguracion, nuevaCategoria, submitHuerto, submitCultural, submitFitosanitario, submitProgramacion, submitConfiguracion, submitCategoria, editarProgramacion, editarConfiguracion, editarHuerto, editarCultural, editarFitosanitario, editarLaborCalendario, eliminarCultural, eliminarFitosanitario, eliminarLaborCalendario, completarProgramacion };
   }
 }).mount('#app');

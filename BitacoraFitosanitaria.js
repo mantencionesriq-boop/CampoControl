@@ -17,17 +17,18 @@ function saveBitacoraFitosanitaria_(fitoData, isUpdate) {
         if (!cleanOptionalSelectionList_(fitoData.Malezas_Objetivo)) throw new Error('Seleccione al menos una maleza o grupo objetivo.');
       }
       var calculation = calculateFitosanitario_(fitoData, use);
-      var huerto = findRecord_('HUERTOS', 'ID_Huerto', fitoData.ID_Huerto);
-      if (!huerto || calculation.surface > Number(huerto.Superficie_m2)) throw new Error('La superficie tratada no puede superar la superficie del huerto (' + (huerto ? huerto.Superficie_m2 : 0) + ' m²).');
       var outside = use && (calculation.dosePer100 < Number(use.Dosis_Minima) || calculation.dosePer100 > Number(use.Dosis_Maxima));
       if (outside) {
         cleanText_(fitoData.Justificacion_Excepcion, 'Justificación de excepción', true);
         var activeEmail = Session.getActiveUser().getEmail();
         if (!activeEmail) throw new Error('La dosis está fuera del rango y no fue posible identificar al usuario autorizado.');
       }
+      var huertoId = assertHuertoExists_(fitoData.ID_Huerto);
+      assertSuperficieTratada_(huertoId, fitoData.Superficie_Tratada_m2);
+      var cultivosTratados = cleanCultivosDeHuerto_(huertoId, fitoData.Cultivos_Tratados);
       var id = fitoData.ID_Aplicacion || 'FIT-' + Utilities.getUuid().slice(0, 8).toUpperCase(), now = new Date();
       var record = {
-        ID_Aplicacion: id, ID_Huerto: assertHuertoExists_(fitoData.ID_Huerto), Fecha: cleanDate_(fitoData.Fecha, 'Fecha'), Problema_Objetivo: cleanText_(fitoData.Problema_Objetivo, 'Problema objetivo', true), Producto_Aplicado: product.Nombre_Comercial, Dosis_Utilizada: cleanText_(fitoData.Dosis_Utilizada, 'Dosis utilizada', true), Eficacia_Observada: requireOption_(fitoData.Eficacia_Observada, ['En Seguimiento', 'Control Alto', 'Control Medio', 'Sin Respuesta'], 'Eficacia observada'), Cultivos_Tratados: cleanSelectionList_(fitoData.Cultivos_Tratados, 'Cultivos o zonas tratadas'),
+        ID_Aplicacion: id, ID_Huerto: huertoId, Fecha: cleanDate_(fitoData.Fecha, 'Fecha'), Problema_Objetivo: cleanText_(fitoData.Problema_Objetivo, 'Problema objetivo', true), Producto_Aplicado: product.Nombre_Comercial, Dosis_Utilizada: cleanText_(fitoData.Dosis_Utilizada, 'Dosis utilizada', true), Eficacia_Observada: requireOption_(fitoData.Eficacia_Observada, ['En Seguimiento', 'Control Alto', 'Control Medio', 'Sin Respuesta'], 'Eficacia observada'), Cultivos_Tratados: cultivosTratados,
         Superficie_Tratada_m2: calculation.surface, Volumen_100m2_L: calculation.volumePer100, Capacidad_Estanque_L: calculation.tankCapacity, Dosis_100L: calculation.dosePer100, Unidad_Producto: calculation.unit, Agua_Total_L: calculation.totalWater, Numero_Cargas: calculation.loads, Producto_Total: calculation.totalProduct,
         ID_Agroquimico: product.ID_Agroquimico, ID_Version: product.ID_Version_Activa, ID_Uso: use ? use.ID_Uso : '', Tipo_Aplicacion: cleanText_(fitoData.Tipo_Aplicacion || 'Aplicación fitosanitaria', 'Tipo de aplicación', true), Ingrediente_Activo_Snapshot: product.Ingrediente_Activo || '', Tipo_Producto_Snapshot: product.Tipo_Producto || '', Sectores_Aplicacion: cleanOptionalSelectionList_(fitoData.Sectores_Aplicacion), Tipo_Objetivo: cleanText_(fitoData.Tipo_Objetivo, 'Tipo de objetivo', false), Malezas_Objetivo: cleanOptionalSelectionList_(fitoData.Malezas_Objetivo), Metodo_Aplicacion: cleanText_(fitoData.Metodo_Aplicacion, 'Método de aplicación', false), Aplicador: cleanText_(fitoData.Aplicador, 'Aplicador', false), Condiciones_Meteorologicas: cleanText_(fitoData.Condiciones_Meteorologicas, 'Condiciones meteorológicas', false), Periodo_Carencia_Snapshot: use ? use.Carencia_Dias : '', Tiempo_Reingreso_Snapshot: use ? use.Reingreso_Horas : '', Fuera_Rango: !!outside, Justificacion_Excepcion: outside ? fitoData.Justificacion_Excepcion : '', Autorizado_Por: outside ? Session.getActiveUser().getEmail() : '', Fecha_Creacion: fitoData.Fecha_Creacion || now, Creado_Por: fitoData.Creado_Por || currentUserEmail_(), Estado_Registro: 'ACTIVO'
       };
