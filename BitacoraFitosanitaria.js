@@ -17,6 +17,8 @@ function saveBitacoraFitosanitaria_(fitoData, isUpdate) {
         if (!cleanOptionalSelectionList_(fitoData.Malezas_Objetivo)) throw new Error('Seleccione al menos una maleza o grupo objetivo.');
       }
       var calculation = calculateFitosanitario_(fitoData, use);
+      var huerto = findRecord_('HUERTOS', 'ID_Huerto', fitoData.ID_Huerto);
+      if (!huerto || calculation.surface > Number(huerto.Superficie_m2)) throw new Error('La superficie tratada no puede superar la superficie del huerto (' + (huerto ? huerto.Superficie_m2 : 0) + ' m²).');
       var outside = use && (calculation.dosePer100 < Number(use.Dosis_Minima) || calculation.dosePer100 > Number(use.Dosis_Maxima));
       if (outside) {
         cleanText_(fitoData.Justificacion_Excepcion, 'Justificación de excepción', true);

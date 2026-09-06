@@ -24,7 +24,7 @@ function saveConfiguracion(data) {
 
 function validateConfigCategory_(category) {
   var value = cleanText_(category, 'Categoría', true);
-  var baseCategories = ['LABOR', 'PRODUCTO', 'CULTIVO', 'CATEGORIA'];
+  var baseCategories = ['LABOR', 'PRODUCTO', 'CULTIVO', 'TIPO_HUERTO', 'CATEGORIA'];
   if (baseCategories.indexOf(value) !== -1) return value;
   var sheet = getSpreadsheet().getSheetByName('CONFIGURACION');
   var exists = getSheetDataAsObjects(sheet).some(function(item) {
