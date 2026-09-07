@@ -176,8 +176,8 @@ createApp({
     const openDrawer = name => { activeDrawer.value = name; };
     const closeDrawer = () => { activeDrawer.value = ''; };
     const nuevoHuerto = () => { formHuerto.value = AppUtils.newHuerto(); openDrawer('huerto'); };
-    const agregarCultivoHuerto = () => {
-      const name = String(formHuerto.value.CultivoSeleccionado || '').trim();
+    const agregarCultivoHuerto = selectedName => {
+      const name = String(selectedName || formHuerto.value.CultivoSeleccionado || '').trim();
       if (!name) return;
       if (!opcionesCultivosDisponibles.value.some(opcion => opcion.Nombre === name)) { showAlert('Opción no disponible', 'Seleccione una especie o cobertura sugerida por el catálogo.', 'warning'); return; }
       formHuerto.value.Cultivos.push({ ID_Cultivo: '', Nombre: name, Variedad: '', Sector: '', Estado: 'Activo' });
