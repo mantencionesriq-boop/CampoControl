@@ -188,8 +188,8 @@ createApp({
     const openTab = tab => { currentTab.value = tab; if (tab === 'panel') setTimeout(renderDashboard, 0); };
     const abrirDetallePanel = detalle => { panelDetail.value = detalle; };
     const cerrarDetallePanel = () => { panelDetail.value = ''; setTimeout(renderDashboard, 0); };
-    const loadServerData = async () => {
-      loading.value = true;
+    const loadServerData = async (silent = false) => {
+      if (!silent) loading.value = true;
       try {
         const response = await ServerApi.call('getInitialData');
         if (!response.success) throw new Error(response.error);
@@ -201,12 +201,12 @@ createApp({
         if (!formProgramacion.value.Tipo_Labor && tiposLabor.value[0]) formProgramacion.value.Tipo_Labor = tiposLabor.value[0].Nombre;
         setTimeout(renderDashboard, 0);
       } catch (error) { showAlert('Error del servidor', error.message || error.toString(), 'danger'); }
-      finally { loading.value = false; }
+      finally { if (!silent) loading.value = false; }
     };
     const submit = async (method, form, reset) => {
       submitting.value = true;
       showProcessing('Guardando cambios', 'Validando y sincronizando con Google Sheets…');
-      try { const response = await ServerApi.call(method, form.value); if (!response.success) throw new Error(response.error); Swal.close(); showAlert('¡Éxito!', response.message); form.value = reset(); await loadServerData(); closeDrawer(); return true; }
+      try { const response = await ServerApi.call(method, form.value); if (!response.success) throw new Error(response.error); Swal.close(); showAlert('¡Éxito!', response.message); form.value = reset(); closeDrawer(); loadServerData(true); return true; }
       catch (error) { Swal.close(); showAlert('Error', error.message || error.toString(), 'danger'); }
       finally { submitting.value = false; }
     };

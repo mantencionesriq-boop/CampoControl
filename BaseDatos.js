@@ -16,6 +16,9 @@ var ESQUEMA_BASE_DATOS = {
   AUDITORIA: ['ID_Auditoria', 'Fecha_Hora', 'Usuario', 'Accion', 'Entidad', 'ID_Entidad', 'Detalle']
 };
 
+var CAMPOCONTROL_SETUP_VERSION_ = '2026-09-06-optimizado-1';
+var CAMPOCONTROL_SETUP_PROPERTY_ = 'CAMPOCONTROL_SETUP_VERSION';
+
 function getSpreadsheet() {
   return SpreadsheetApp.getActiveSpreadsheet();
 }
@@ -132,7 +135,10 @@ function syncHuertoCultivos_(huertoId, cultivos) {
 
 function setupDatabase() {
   try {
+    var properties = PropertiesService.getDocumentProperties();
+    if (properties.getProperty(CAMPOCONTROL_SETUP_PROPERTY_) === CAMPOCONTROL_SETUP_VERSION_) return { success: true, message: 'Base de datos lista.' };
     return withDocumentLock_(function() {
+      if (properties.getProperty(CAMPOCONTROL_SETUP_PROPERTY_) === CAMPOCONTROL_SETUP_VERSION_) return { success: true, message: 'Base de datos lista.' };
       var spreadsheet = getSpreadsheet();
       if (!spreadsheet) throw new Error('El proyecto no está vinculado a una hoja de cálculo.');
       Object.keys(ESQUEMA_BASE_DATOS).forEach(function(sheetName) {
@@ -151,6 +157,7 @@ function setupDatabase() {
       migrateLegacyHuertoCultivos_(spreadsheet);
       seedFitosanitarioCatalogs_(spreadsheet);
       migrateLegacyProducts_(spreadsheet);
+      properties.setProperty(CAMPOCONTROL_SETUP_PROPERTY_, CAMPOCONTROL_SETUP_VERSION_);
       return { success: true, message: 'Base de datos inicializada correctamente.' };
     });
   } catch (error) {
