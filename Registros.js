@@ -78,6 +78,7 @@ function normalizeRecordField_(sheetName, field, value) {
   if (field === 'Estado' && sheetName === 'LABORES_PROGRAMADAS') return requireOption_(value, ['Programada', 'Realizada'], field);
   if (field === 'Categoria') return validateConfigCategory_(value);
   if (field === 'Cultivos_Tratados') return cleanSelectionList_(value, field);
+  if (field === 'Cultivos_Asignados') return cleanOptionalSelectionList_(value);
   if (field === 'Activo') return value === true;
   if (field === 'Unidad_Producto') return requireOption_(value, ['ml', 'g', 'L', 'kg'], field);
   var requiredFields = ['Nombre_Cliente', 'Ubicacion', 'Tipo_Labor', 'Descripcion_Tecnica', 'Problema_Objetivo', 'Producto_Aplicado', 'Dosis_Utilizada', 'Nombre'];
