@@ -124,7 +124,7 @@ createApp({
     const culturalesTemporada = computed(() => culturalLogs.value.filter(item => perteneceTemporada(item.Fecha) && coincideHuertoPanel(item)));
     const fitosanitariosTemporada = computed(() => fitosanitarioLogs.value.filter(item => perteneceTemporada(item.Fecha) && coincideHuertoPanel(item)));
     const programacionesTemporada = computed(() => laboresProgramadas.value.filter(item => perteneceTemporada(item.Fecha_Programada) && coincideHuertoPanel(item)));
-    const culturalHistorial = computed(() => culturalesTemporada.value.filter(item => !(String(item.Fecha) > serverToday.value)));
+    const culturalHistorial = computed(() => [...culturalesTemporada.value].sort((a, b) => String(b.Fecha).localeCompare(String(a.Fecha))));
     const calendarioCompleto = computed(() => {
       const programadas = programacionesTemporada.value.map(item => ({ ...item, clave: 'PRG-' + item.ID_Programacion, origen: 'PROGRAMADA' }));
       const culturalesFuturas = culturalesTemporada.value
