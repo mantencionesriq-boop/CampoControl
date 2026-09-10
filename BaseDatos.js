@@ -2,8 +2,8 @@ var ESQUEMA_BASE_DATOS = {
   HUERTOS: ['ID_Huerto', 'Nombre_Cliente', 'Ubicacion', 'Superficie_m2', 'Tipo_Huerto', 'Fecha_Inicio', 'Estado'],
   HUERTO_CULTIVOS: ['ID_Cultivo', 'ID_Huerto', 'Nombre', 'Variedad', 'Sector', 'Estado'],
   BITACORA_PROYECTO: ['ID_Entrada', 'Fecha', 'ID_Huerto', 'Categoria', 'Titulo', 'Detalle', 'Creado_Por', 'Fecha_Creacion'],
-  BITACORA_CULTURAL: ['ID_Labor', 'ID_Huerto', 'ID_Cultivo', 'Cultivo', 'Fecha', 'Tipo_Labor', 'Descripcion_Tecnica', 'Horas_Invertidas'],
-  BITACORA_FITOSANITARIA: ['ID_Aplicacion', 'ID_Huerto', 'Fecha', 'Problema_Objetivo', 'Producto_Aplicado', 'Dosis_Utilizada', 'Eficacia_Observada', 'Cultivos_Tratados', 'Superficie_Tratada_m2', 'Volumen_100m2_L', 'Capacidad_Estanque_L', 'Dosis_100L', 'Unidad_Producto', 'Agua_Total_L', 'Numero_Cargas', 'Producto_Total', 'ID_Agroquimico', 'ID_Version', 'ID_Uso', 'Tipo_Aplicacion', 'Ingrediente_Activo_Snapshot', 'Tipo_Producto_Snapshot', 'Sectores_Aplicacion', 'Tipo_Objetivo', 'Malezas_Objetivo', 'Metodo_Aplicacion', 'Aplicador', 'Condiciones_Meteorologicas', 'Periodo_Carencia_Snapshot', 'Tiempo_Reingreso_Snapshot', 'Fuera_Rango', 'Justificacion_Excepcion', 'Autorizado_Por', 'Fecha_Creacion', 'Creado_Por', 'Estado_Registro'],
+  BITACORA_CULTURAL: ['ID_Labor', 'ID_Huerto', 'ID_Cultivo', 'Cultivo', 'Fecha', 'Tipo_Labor', 'Descripcion_Tecnica', 'Horas_Invertidas', 'Estado', 'Fecha_Realizacion'],
+  BITACORA_FITOSANITARIA: ['ID_Aplicacion', 'ID_Huerto', 'Fecha', 'Problema_Objetivo', 'Producto_Aplicado', 'Dosis_Utilizada', 'Eficacia_Observada', 'Cultivos_Tratados', 'Superficie_Tratada_m2', 'Volumen_100m2_L', 'Capacidad_Estanque_L', 'Dosis_100L', 'Unidad_Producto', 'Agua_Total_L', 'Numero_Cargas', 'Producto_Total', 'ID_Agroquimico', 'ID_Version', 'ID_Uso', 'Tipo_Aplicacion', 'Ingrediente_Activo_Snapshot', 'Tipo_Producto_Snapshot', 'Sectores_Aplicacion', 'Tipo_Objetivo', 'Malezas_Objetivo', 'Metodo_Aplicacion', 'Aplicador', 'Condiciones_Meteorologicas', 'Periodo_Carencia_Snapshot', 'Tiempo_Reingreso_Snapshot', 'Fuera_Rango', 'Justificacion_Excepcion', 'Autorizado_Por', 'Fecha_Creacion', 'Creado_Por', 'Estado_Registro', 'Estado_Tarea', 'Fecha_Realizacion'],
   MAESTRO_INSUMOS: ['ID_Insumo', 'Nombre_Producto', 'Ingrediente_Activo', 'Tipo'],
   CONFIGURACION: ['ID_Configuracion', 'Categoria', 'Nombre', 'Grupo', 'Activo'],
   LABORES_PROGRAMADAS: ['ID_Programacion', 'ID_Huerto', 'Fecha_Programada', 'Tipo_Labor', 'Descripcion', 'Horas_Estimadas', 'Estado', 'Fecha_Realizacion'],
@@ -16,7 +16,7 @@ var ESQUEMA_BASE_DATOS = {
   AUDITORIA: ['ID_Auditoria', 'Fecha_Hora', 'Usuario', 'Accion', 'Entidad', 'ID_Entidad', 'Detalle']
 };
 
-var CAMPOCONTROL_SETUP_VERSION_ = '2026-09-06-optimizado-1';
+var CAMPOCONTROL_SETUP_VERSION_ = '2026-09-07-completar-agenda-1';
 var CAMPOCONTROL_SETUP_PROPERTY_ = 'CAMPOCONTROL_SETUP_VERSION';
 
 function getSpreadsheet() {

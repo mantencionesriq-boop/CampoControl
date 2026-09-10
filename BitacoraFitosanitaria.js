@@ -30,7 +30,7 @@ function saveBitacoraFitosanitaria_(fitoData, isUpdate) {
       var record = {
         ID_Aplicacion: id, ID_Huerto: huertoId, Fecha: cleanDate_(fitoData.Fecha, 'Fecha'), Problema_Objetivo: cleanText_(fitoData.Problema_Objetivo, 'Problema objetivo', true), Producto_Aplicado: product.Nombre_Comercial, Dosis_Utilizada: cleanText_(fitoData.Dosis_Utilizada, 'Dosis utilizada', true), Eficacia_Observada: requireOption_(fitoData.Eficacia_Observada, ['En Seguimiento', 'Control Alto', 'Control Medio', 'Sin Respuesta'], 'Eficacia observada'), Cultivos_Tratados: cultivosTratados,
         Superficie_Tratada_m2: calculation.surface, Volumen_100m2_L: calculation.volumePer100, Capacidad_Estanque_L: calculation.tankCapacity, Dosis_100L: calculation.dosePer100, Unidad_Producto: calculation.unit, Agua_Total_L: calculation.totalWater, Numero_Cargas: calculation.loads, Producto_Total: calculation.totalProduct,
-        ID_Agroquimico: product.ID_Agroquimico, ID_Version: product.ID_Version_Activa, ID_Uso: use ? use.ID_Uso : '', Tipo_Aplicacion: cleanText_(fitoData.Tipo_Aplicacion || 'Aplicación fitosanitaria', 'Tipo de aplicación', true), Ingrediente_Activo_Snapshot: product.Ingrediente_Activo || '', Tipo_Producto_Snapshot: product.Tipo_Producto || '', Sectores_Aplicacion: cleanOptionalSelectionList_(fitoData.Sectores_Aplicacion), Tipo_Objetivo: cleanText_(fitoData.Tipo_Objetivo, 'Tipo de objetivo', false), Malezas_Objetivo: cleanOptionalSelectionList_(fitoData.Malezas_Objetivo), Metodo_Aplicacion: cleanText_(fitoData.Metodo_Aplicacion, 'Método de aplicación', false), Aplicador: cleanText_(fitoData.Aplicador, 'Aplicador', false), Condiciones_Meteorologicas: cleanText_(fitoData.Condiciones_Meteorologicas, 'Condiciones meteorológicas', false), Periodo_Carencia_Snapshot: use ? use.Carencia_Dias : '', Tiempo_Reingreso_Snapshot: use ? use.Reingreso_Horas : '', Fuera_Rango: !!outside, Justificacion_Excepcion: outside ? fitoData.Justificacion_Excepcion : '', Autorizado_Por: outside ? Session.getActiveUser().getEmail() : '', Fecha_Creacion: fitoData.Fecha_Creacion || now, Creado_Por: fitoData.Creado_Por || currentUserEmail_(), Estado_Registro: 'ACTIVO'
+        ID_Agroquimico: product.ID_Agroquimico, ID_Version: product.ID_Version_Activa, ID_Uso: use ? use.ID_Uso : '', Tipo_Aplicacion: cleanText_(fitoData.Tipo_Aplicacion || 'Aplicación fitosanitaria', 'Tipo de aplicación', true), Ingrediente_Activo_Snapshot: product.Ingrediente_Activo || '', Tipo_Producto_Snapshot: product.Tipo_Producto || '', Sectores_Aplicacion: cleanOptionalSelectionList_(fitoData.Sectores_Aplicacion), Tipo_Objetivo: cleanText_(fitoData.Tipo_Objetivo, 'Tipo de objetivo', false), Malezas_Objetivo: cleanOptionalSelectionList_(fitoData.Malezas_Objetivo), Metodo_Aplicacion: cleanText_(fitoData.Metodo_Aplicacion, 'Método de aplicación', false), Aplicador: cleanText_(fitoData.Aplicador, 'Aplicador', false), Condiciones_Meteorologicas: cleanText_(fitoData.Condiciones_Meteorologicas, 'Condiciones meteorológicas', false), Periodo_Carencia_Snapshot: use ? use.Carencia_Dias : '', Tiempo_Reingreso_Snapshot: use ? use.Reingreso_Horas : '', Fuera_Rango: !!outside, Justificacion_Excepcion: outside ? fitoData.Justificacion_Excepcion : '', Autorizado_Por: outside ? Session.getActiveUser().getEmail() : '', Fecha_Creacion: fitoData.Fecha_Creacion || now, Creado_Por: fitoData.Creado_Por || currentUserEmail_(), Estado_Registro: 'ACTIVO', Estado_Tarea: fitoData.Estado_Tarea || 'Programada', Fecha_Realizacion: fitoData.Fecha_Realizacion || ''
       };
       var result;
       if (isUpdate) result = updateObjectRowNoLock_('BITACORA_FITOSANITARIA', 'ID_Aplicacion', id, record);
@@ -41,6 +41,18 @@ function saveBitacoraFitosanitaria_(fitoData, isUpdate) {
   } catch (error) {
     return { success: false, error: 'Error al guardar el tratamiento fitosanitario: ' + error.toString() };
   }
+}
+
+function completeBitacoraFitosanitaria(id) {
+  setupDatabase();
+  return updateRecord_('BITACORA_FITOSANITARIA', 'ID_Aplicacion', id, {
+    Estado_Tarea: 'Realizada',
+    Fecha_Realizacion: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
+  });
+}
+
+function reopenBitacoraFitosanitaria(id) {
+  return updateRecord_('BITACORA_FITOSANITARIA', 'ID_Aplicacion', id, { Estado_Tarea: 'Programada', Fecha_Realizacion: '' });
 }
 
 function findAgroquimicoByName_(name) {

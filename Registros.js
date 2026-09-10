@@ -97,7 +97,7 @@ function normalizeRecordField_(sheetName, field, value) {
   if (field === 'ID_Huerto') return assertHuertoExists_(value);
   if (field === 'Tipo_Huerto') return assertConfiguredOption_('TIPO_HUERTO', value, field);
   if (field === 'Estado' && sheetName === 'HUERTOS') return requireOption_(value, ['Activo', 'Inactivo'], field);
-  if (field === 'Estado' && sheetName === 'LABORES_PROGRAMADAS') return requireOption_(value, ['Programada', 'Realizada'], field);
+  if (field === 'Estado' && (sheetName === 'LABORES_PROGRAMADAS' || sheetName === 'BITACORA_CULTURAL')) return requireOption_(value, ['Programada', 'Realizada'], field);
   if (field === 'Categoria') return validateConfigCategory_(value);
   if (field === 'Cultivos_Tratados') return cleanSelectionList_(value, field);
   if (field === 'Activo') return value === true;
