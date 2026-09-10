@@ -3,6 +3,9 @@
   * { box-sizing:border-box; }
   body { margin:0; background:var(--cc-bg); color:var(--cc-text); font-family:Inter,"Segoe UI",Arial,sans-serif; font-size:13px; }
   button,input,select,textarea { font:inherit; } [v-cloak] { display:none; }
+  .boot-loader { position:fixed; inset:0; z-index:9999; display:grid; place-items:center; background:var(--cc-bg); color:var(--cc-text); }
+  .boot-loader-card { width:min(290px,calc(100vw - 40px)); display:grid; justify-items:center; gap:7px; text-align:center; } .boot-loader-mark { width:42px; height:42px; margin-bottom:4px; border-radius:10px; display:grid; place-items:center; background:var(--cc-green); color:#fff; font-size:19px; box-shadow:0 10px 24px rgba(22,163,106,.22); } .boot-loader-card strong { font-size:13px; letter-spacing:.06em; } .boot-loader-card span { color:var(--cc-muted); font-size:10px; }
+  .boot-loader-line { position:relative; width:150px; height:3px; margin-top:9px; overflow:hidden; border-radius:999px; background:#dce4df; } .boot-loader-line::after { content:""; position:absolute; inset:0; width:45%; border-radius:inherit; background:var(--cc-green); animation:bootLoading 1s ease-in-out infinite alternate; } @keyframes bootLoading { from { transform:translateX(-15%); } to { transform:translateX(135%); } }
   .app-shell { min-height:100vh; display:grid; grid-template-columns:230px minmax(0,1fr); }
   .app-sidebar { position:sticky; top:0; height:100vh; padding:18px 12px; background:var(--cc-navy); color:#fff; display:flex; flex-direction:column; z-index:20; }
   .brand { display:flex; align-items:center; gap:11px; padding:2px 8px 18px; border-bottom:1px solid rgba(255,255,255,.09); }
