@@ -130,7 +130,7 @@ createApp({
       const culturalesFuturas = culturalesTemporada.value
         .filter(item => String(item.Fecha) > serverToday.value)
         .map(item => ({ ...item, clave: 'LAB-' + item.ID_Labor, origen: 'CULTURAL', Fecha_Programada: item.Fecha, Estado: item.Estado || 'Programada' }));
-      const aplicaciones = fitosanitariosTemporada.value.map(item => ({ ...item, clave: 'FIT-' + item.ID_Aplicacion, origen: 'FITOSANITARIO', Fecha_Programada: item.Fecha, Tipo_Labor: (item.Tipo_Aplicacion || 'Aplicación') + ': ' + item.Producto_Aplicado, Estado: item.Estado_Tarea || 'Programada' }));
+      const aplicaciones = fitosanitariosTemporada.value.map(item => ({ ...item, clave: 'FIT-' + item.ID_Aplicacion, origen: 'FITOSANITARIO', Fecha_Programada: item.Fecha, Tipo_Labor: (item.Tipo_Aplicacion || 'Aplicación') + ': ' + item.Producto_Aplicado, Estado: item.Estado_Tarea || (String(item.Fecha) > serverToday.value ? 'Programada' : 'Realizada') }));
       return [...programadas, ...culturalesFuturas, ...aplicaciones].map(item => ({ ...item, EstadoVista: getEstadoCalendario(item) })).sort((a, b) => String(a.Fecha_Programada).localeCompare(String(b.Fecha_Programada)));
     });
     const tiposCalendario = computed(() => [...new Set(calendarioCompleto.value.map(x => x.Tipo_Labor).filter(Boolean))].sort());
@@ -169,7 +169,7 @@ createApp({
     const confirmAction = (title, message, confirmText = 'Eliminar') => Swal.fire({ title, text: message, icon: 'warning', showCancelButton: true, confirmButtonText: confirmText, cancelButtonText: 'Cancelar', confirmButtonColor: '#dc3545', cancelButtonColor: '#64748b', reverseButtons: true, focusCancel: true, customClass: { popup: 'campocontrol-swal' } }).then(result => result.isConfirmed);
     const showProcessing = (title, message) => Swal.fire({ title, text: message || 'Espere un momento…', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: () => Swal.showLoading(), customClass: { popup: 'campocontrol-swal' } });
     function getEstadoCalendario(item) {
-      if (item.origen === 'FITOSANITARIO') return 'REALIZADA';
+      if (String(item.Fecha_Programada) > serverToday.value) return 'PENDIENTE';
       if (item.Estado === 'Realizada') return 'REALIZADA';
       if (serverToday.value > String(item.Fecha_Programada)) return 'VENCIDA';
       return 'PENDIENTE';
@@ -211,7 +211,7 @@ createApp({
       try {
         const response = await ServerApi.call('getInitialData');
         if (!response.success) throw new Error(response.error);
-        huertos.value = response.huertos; huertoCultivos.value = response.huertoCultivos || []; bitacoraProyecto.value = response.bitacoraProyecto || []; culturalLogs.value = response.culturalLogs; fitosanitarioLogs.value = response.fitosanitarioLogs; insumos.value = response.insumos;
+        huertos.value = (response.huertos || []).map(item => ({ ...item, Hoy: response.today || AppUtils.today() })); huertoCultivos.value = response.huertoCultivos || []; bitacoraProyecto.value = response.bitacoraProyecto || []; culturalLogs.value = response.culturalLogs; fitosanitarioLogs.value = response.fitosanitarioLogs; insumos.value = response.insumos;
         configuraciones.value = response.configuraciones; laboresProgramadas.value = response.laboresProgramadas;
         agroquimicos.value = response.agroquimicos || []; agroquimicosVersiones.value = response.agroquimicosVersiones || []; agroquimicosUsos.value = response.agroquimicosUsos || []; agroquimicosDocumentos.value = response.agroquimicosDocumentos || []; malezas.value = response.malezas || []; sectoresAplicacion.value = response.sectoresAplicacion || [];
         serverToday.value = response.today || AppUtils.today();
