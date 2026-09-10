@@ -74,9 +74,9 @@ createApp({
         { id: 'ORNAMENTALES', nombre: 'Flores y ornamentales', icono: 'bi-flower2', nombres: ['Rosa','Jazmín','Lavanda','Hortensia','Camelia','Azalea','Buganvilia','Geranio','Petunia','Margarita','Lirio','Tulipán','Narciso','Dalia','Orquídea','Clavel','Hibisco','Adelfa','Pitosporo'] },
         { id: 'ARBOLES_ARBUSTOS', nombre: 'Árboles y arbustos', icono: 'bi-tree-fill', nombres: ['Ligustro','Ficus','Palmera','Araucaria','Ciprés','Jacarandá','Magnolio','Liquidámbar','Plátano oriental'] }
       ];
-      const opciones = configuraciones.value.filter(item => item.Categoria === 'CULTIVO'), asignadas = new Set(definiciones.flatMap(grupo => grupo.nombres));
-      const grupos = definiciones.map(grupo => ({ ...grupo, opciones: opciones.filter(item => (item.Grupo === grupo.id || (!item.Grupo && grupo.nombres.includes(item.Nombre))) && coincideBusquedaConfig(item)) }));
-      const otras = opciones.filter(item => (!item.Grupo && !asignadas.has(item.Nombre) || item.Grupo === 'OTROS') && coincideBusquedaConfig(item));
+      const opciones = configuraciones.value.filter(item => item.Categoria === 'CULTIVO'), asignadas = new Set(definiciones.flatMap(grupo => grupo.nombres)), gruposValidos = new Set(definiciones.map(grupo => grupo.id).concat(['OTROS']));
+      const grupos = definiciones.map(grupo => ({ ...grupo, opciones: opciones.filter(item => (item.Grupo === grupo.id || grupo.nombres.includes(item.Nombre)) && coincideBusquedaConfig(item)) }));
+      const otras = opciones.filter(item => (item.Grupo === 'OTROS' || (!gruposValidos.has(item.Grupo) && !asignadas.has(item.Nombre))) && coincideBusquedaConfig(item));
       if (otras.length) grupos.push({ id: 'OTROS', nombre: 'Sin clasificar', icono: 'bi-inboxes', opciones: otras });
       categoriasPersonalizadas.value.forEach(nombre => grupos.push({ id: 'CUSTOM-' + nombre, nombre, icono: 'bi-tags', opciones: configuraciones.value.filter(item => item.Categoria === nombre && coincideBusquedaConfig(item)) }));
       return grupos.map(grupo => ({ ...grupo, cantidad: grupo.opciones.length }));

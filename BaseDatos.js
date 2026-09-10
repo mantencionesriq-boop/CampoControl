@@ -172,8 +172,9 @@ function seedDefaultConfiguration_(sheet) {
   var existingIds = sheet.getLastRow() > 1
     ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getDisplayValues().map(function(row) { return row[0]; })
     : [];
-  var missing = defaults.filter(function(row) { return existingIds.indexOf(row[0]) === -1; });
-  if (missing.length) sheet.getRange(sheet.getLastRow() + 1, 1, missing.length, missing[0].length).setValues(missing);
+  defaults.filter(function(row) { return existingIds.indexOf(row[0]) === -1; }).forEach(function(row) {
+    appendObjectRow_(sheet, { ID_Configuracion: row[0], Categoria: row[1], Grupo: row[2], Nombre: row[3], Activo: row[4] });
+  });
 }
 
 function getSheetDataAsObjects(sheet) {
