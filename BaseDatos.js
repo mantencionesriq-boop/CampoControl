@@ -13,6 +13,7 @@ var ESQUEMA_BASE_DATOS = {
   SECTORES_APLICACION: ['ID_Sector', 'Nombre', 'Descripcion', 'Activo'],
   AUDITORIA: ['ID_Auditoria', 'Fecha_Hora', 'Usuario', 'Accion', 'Entidad', 'ID_Entidad', 'Detalle']
 };
+var DATABASE_SCHEMA_VERSION = '2026-09-10-01';
 
 function getSpreadsheet() {
   return SpreadsheetApp.getActiveSpreadsheet();
@@ -62,7 +63,10 @@ function assertHuertoExists_(id) {
 
 function setupDatabase() {
   try {
+    var properties = PropertiesService.getScriptProperties();
+    if (properties.getProperty('CAMPOCONTROL_SCHEMA_VERSION') === DATABASE_SCHEMA_VERSION) return { success: true, message: 'Base de datos preparada.' };
     return withDocumentLock_(function() {
+      if (properties.getProperty('CAMPOCONTROL_SCHEMA_VERSION') === DATABASE_SCHEMA_VERSION) return { success: true, message: 'Base de datos preparada.' };
       var spreadsheet = getSpreadsheet();
       if (!spreadsheet) throw new Error('El proyecto no está vinculado a una hoja de cálculo.');
       Object.keys(ESQUEMA_BASE_DATOS).forEach(function(sheetName) {
@@ -79,6 +83,7 @@ function setupDatabase() {
       seedDefaultConfiguration_(spreadsheet.getSheetByName('CONFIGURACION'));
       seedFitosanitarioCatalogs_(spreadsheet);
       migrateLegacyProducts_(spreadsheet);
+      properties.setProperty('CAMPOCONTROL_SCHEMA_VERSION', DATABASE_SCHEMA_VERSION);
       return { success: true, message: 'Base de datos inicializada correctamente.' };
     });
   } catch (error) {
@@ -192,26 +197,26 @@ function getSheetDataAsObjects(sheet) {
   });
 }
 
-function getInitialData() {
+function getInitialData(scope) {
   try {
     setupDatabase();
-    var spreadsheet = getSpreadsheet();
-    return {
-      success: true,
-      huertos: getSheetDataAsObjects(spreadsheet.getSheetByName('HUERTOS')),
-      culturalLogs: getSheetDataAsObjects(spreadsheet.getSheetByName('BITACORA_CULTURAL')),
-      fitosanitarioLogs: getSheetDataAsObjects(spreadsheet.getSheetByName('BITACORA_FITOSANITARIA')),
-      insumos: getSheetDataAsObjects(spreadsheet.getSheetByName('MAESTRO_INSUMOS')),
-      configuraciones: getSheetDataAsObjects(spreadsheet.getSheetByName('CONFIGURACION')),
-      laboresProgramadas: getSheetDataAsObjects(spreadsheet.getSheetByName('LABORES_PROGRAMADAS')),
-      agroquimicos: getSheetDataAsObjects(spreadsheet.getSheetByName('AGROQUIMICOS')),
-      agroquimicosVersiones: getSheetDataAsObjects(spreadsheet.getSheetByName('AGROQUIMICOS_VERSIONES')),
-      agroquimicosUsos: getSheetDataAsObjects(spreadsheet.getSheetByName('AGROQUIMICOS_USOS')),
-      agroquimicosDocumentos: getSheetDataAsObjects(spreadsheet.getSheetByName('AGROQUIMICOS_DOCUMENTOS')).map(function(item) { delete item.Texto_Extraido; return item; }),
-      malezas: getSheetDataAsObjects(spreadsheet.getSheetByName('MALEZAS')),
-      sectoresAplicacion: getSheetDataAsObjects(spreadsheet.getSheetByName('SECTORES_APLICACION')),
-      today: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
-    };
+    var spreadsheet = getSpreadsheet(), requested = String(scope || 'all'), all = requested === 'all';
+    var response = { success: true, scope: requested, today: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd') };
+    if (all || requested === 'huertos') response.huertos = getSheetDataAsObjects(spreadsheet.getSheetByName('HUERTOS'));
+    if (all || requested === 'cultural') response.culturalLogs = getSheetDataAsObjects(spreadsheet.getSheetByName('BITACORA_CULTURAL'));
+    if (all || requested === 'fitosanitario') response.fitosanitarioLogs = getSheetDataAsObjects(spreadsheet.getSheetByName('BITACORA_FITOSANITARIA'));
+    if (all) response.insumos = getSheetDataAsObjects(spreadsheet.getSheetByName('MAESTRO_INSUMOS'));
+    if (all || requested === 'configuracion') response.configuraciones = getSheetDataAsObjects(spreadsheet.getSheetByName('CONFIGURACION'));
+    if (all || requested === 'programacion') response.laboresProgramadas = getSheetDataAsObjects(spreadsheet.getSheetByName('LABORES_PROGRAMADAS'));
+    if (all || requested === 'agroquimicos') {
+      response.agroquimicos = getSheetDataAsObjects(spreadsheet.getSheetByName('AGROQUIMICOS'));
+      response.agroquimicosVersiones = getSheetDataAsObjects(spreadsheet.getSheetByName('AGROQUIMICOS_VERSIONES'));
+      response.agroquimicosUsos = getSheetDataAsObjects(spreadsheet.getSheetByName('AGROQUIMICOS_USOS'));
+      response.agroquimicosDocumentos = getSheetDataAsObjects(spreadsheet.getSheetByName('AGROQUIMICOS_DOCUMENTOS')).map(function(item) { delete item.Texto_Extraido; return item; });
+      response.malezas = getSheetDataAsObjects(spreadsheet.getSheetByName('MALEZAS'));
+      response.sectoresAplicacion = getSheetDataAsObjects(spreadsheet.getSheetByName('SECTORES_APLICACION'));
+    }
+    return response;
   } catch (error) {
     return { success: false, error: 'Error al recuperar datos del servidor: ' + error.toString() };
   }
