@@ -47,6 +47,7 @@ function deleteAgroquimico(id) {
       deleteRowsByValue_('AGROQUIMICOS_USOS', 'ID_Agroquimico', id);
       deleteRowsByValue_('AGROQUIMICOS_VERSIONES', 'ID_Agroquimico', id);
       deleteRowsByValue_('AGROQUIMICOS', 'ID_Agroquimico', id);
+      SpreadsheetApp.flush();
       audit_('ELIMINAR', 'AGROQUIMICO', id, { nombre: product.Nombre_Comercial, documentos: documents.length });
       return { success: true, message: 'Agroquímico eliminado correctamente.' };
     });

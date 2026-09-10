@@ -197,11 +197,16 @@ createApp({
       if (!product || !(await confirmAction('Eliminar agroquímico', 'Se eliminará "' + product.Nombre_Comercial + '" junto con sus usos, versiones y documentos. Esta acción no se puede deshacer.'))) return;
       submitting.value = true;
       try {
+        Swal.fire({ title: 'Eliminando agroquímico', text: 'Actualizando el catálogo y los documentos asociados…', allowOutsideClick: false, allowEscapeKey: false, didOpen: () => Swal.showLoading(), customClass: { popup: 'campocontrol-swal' } });
         const response = await ServerApi.call('deleteAgroquimico', product.ID_Agroquimico);
         if (!response.success) throw new Error(response.error);
+        agroquimicos.value = agroquimicos.value.filter(x => x.ID_Agroquimico !== product.ID_Agroquimico);
+        agroquimicosVersiones.value = agroquimicosVersiones.value.filter(x => x.ID_Agroquimico !== product.ID_Agroquimico);
+        agroquimicosUsos.value = agroquimicosUsos.value.filter(x => x.ID_Agroquimico !== product.ID_Agroquimico);
+        agroquimicosDocumentos.value = agroquimicosDocumentos.value.filter(x => x.ID_Agroquimico !== product.ID_Agroquimico);
         agroDirty.value = false; agroView.value = 'list'; selectedAgroId.value = ''; extractedReview.value = null;
-        showAlert('Agroquímico eliminado', response.message);
         await loadServerData();
+        showAlert('Agroquímico eliminado', response.message);
       } catch (error) { showAlert('No fue posible eliminar', error.message || error.toString(), 'danger'); }
       finally { submitting.value = false; }
     };
