@@ -3,7 +3,7 @@ var ESQUEMA_BASE_DATOS = {
   BITACORA_CULTURAL: ['ID_Labor', 'ID_Huerto', 'Fecha', 'Tipo_Labor', 'Descripcion_Tecnica', 'Horas_Invertidas'],
   BITACORA_FITOSANITARIA: ['ID_Aplicacion', 'ID_Huerto', 'Fecha', 'Problema_Objetivo', 'Producto_Aplicado', 'Dosis_Utilizada', 'Eficacia_Observada', 'Cultivos_Tratados', 'Superficie_Tratada_m2', 'Volumen_100m2_L', 'Capacidad_Estanque_L', 'Dosis_100L', 'Unidad_Producto', 'Agua_Total_L', 'Numero_Cargas', 'Producto_Total', 'ID_Agroquimico', 'ID_Version', 'ID_Uso', 'Tipo_Aplicacion', 'Ingrediente_Activo_Snapshot', 'Tipo_Producto_Snapshot', 'Sectores_Aplicacion', 'Tipo_Objetivo', 'Malezas_Objetivo', 'Metodo_Aplicacion', 'Aplicador', 'Condiciones_Meteorologicas', 'Periodo_Carencia_Snapshot', 'Tiempo_Reingreso_Snapshot', 'Fuera_Rango', 'Justificacion_Excepcion', 'Autorizado_Por', 'Fecha_Creacion', 'Creado_Por', 'Estado_Registro'],
   MAESTRO_INSUMOS: ['ID_Insumo', 'Nombre_Producto', 'Ingrediente_Activo', 'Tipo'],
-  CONFIGURACION: ['ID_Configuracion', 'Categoria', 'Nombre', 'Activo'],
+  CONFIGURACION: ['ID_Configuracion', 'Categoria', 'Grupo', 'Nombre', 'Activo'],
   LABORES_PROGRAMADAS: ['ID_Programacion', 'ID_Huerto', 'Fecha_Programada', 'Tipo_Labor', 'Descripcion', 'Horas_Estimadas', 'Estado', 'Fecha_Realizacion'],
   AGROQUIMICOS: ['ID_Agroquimico', 'Nombre_Comercial', 'Nombre_Normalizado', 'Ingrediente_Activo', 'Concentracion', 'Formulacion', 'Tipo_Producto', 'Fabricante', 'Proveedor', 'Numero_Registro', 'Estado', 'ID_Version_Activa', 'Fecha_Creacion', 'Creado_Por', 'Fecha_Modificacion', 'Modificado_Por'],
   AGROQUIMICOS_VERSIONES: ['ID_Version', 'ID_Agroquimico', 'Numero_Version', 'Fecha_Documento', 'Periodo_Carencia', 'Tiempo_Reingreso', 'Maximo_Aplicaciones', 'Intervalo_Aplicaciones', 'Compatibilidades', 'Incompatibilidades', 'Precauciones', 'EPP', 'Almacenamiento', 'Estado_Revision', 'Confirmado_Por', 'Fecha_Confirmacion'],
@@ -153,21 +153,21 @@ function ensureSheetSchema_(sheet, expectedHeaders) {
 function seedDefaultConfiguration_(sheet) {
   if (!sheet) return;
   var defaults = [
-    ['CFG-LAB-PODA', 'LABOR', 'Poda', true],
-    ['CFG-LAB-RIEGO', 'LABOR', 'Riego', true],
-    ['CFG-LAB-FERT', 'LABOR', 'Fertilización', true],
-    ['CFG-LAB-DESM', 'LABOR', 'Desmalezado', true],
-    ['CFG-LAB-SIEM', 'LABOR', 'Siembra / Trasplante', true],
-    ['CFG-PROD-JABON', 'PRODUCTO', 'Jabón Potásico', true],
-    ['CFG-PROD-NEEM', 'PRODUCTO', 'Aceite de Neem', true],
-    ['CFG-CUL-FLORES', 'CULTIVO', 'Flores', true],
-    ['CFG-CUL-ROSAS', 'CULTIVO', 'Rosas', true],
-    ['CFG-CUL-HORT', 'CULTIVO', 'Hortalizas', true],
-    ['CFG-CUL-FRUT', 'CULTIVO', 'Árboles frutales', true],
-    ['CFG-CUL-ARB', 'CULTIVO', 'Arbustos', true],
-    ['CFG-CUL-CESPED', 'CULTIVO', 'Césped', true],
-    ['CFG-CUL-ORNAM', 'CULTIVO', 'Plantas ornamentales', true],
-    ['CFG-CUL-JARDIN', 'CULTIVO', 'Jardín general', true]
+    ['CFG-LAB-PODA', 'LABOR', '', 'Poda', true],
+    ['CFG-LAB-RIEGO', 'LABOR', '', 'Riego', true],
+    ['CFG-LAB-FERT', 'LABOR', '', 'Fertilización', true],
+    ['CFG-LAB-DESM', 'LABOR', '', 'Desmalezado', true],
+    ['CFG-LAB-SIEM', 'LABOR', '', 'Siembra / Trasplante', true],
+    ['CFG-PROD-JABON', 'PRODUCTO', '', 'Jabón Potásico', true],
+    ['CFG-PROD-NEEM', 'PRODUCTO', '', 'Aceite de Neem', true],
+    ['CFG-CUL-FLORES', 'CULTIVO', 'GENERALES', 'Flores', true],
+    ['CFG-CUL-ROSAS', 'CULTIVO', 'GENERALES', 'Rosas', true],
+    ['CFG-CUL-HORT', 'CULTIVO', 'GENERALES', 'Hortalizas', true],
+    ['CFG-CUL-FRUT', 'CULTIVO', 'GENERALES', 'Árboles frutales', true],
+    ['CFG-CUL-ARB', 'CULTIVO', 'GENERALES', 'Arbustos', true],
+    ['CFG-CUL-CESPED', 'CULTIVO', 'GENERALES', 'Césped', true],
+    ['CFG-CUL-ORNAM', 'CULTIVO', 'GENERALES', 'Plantas ornamentales', true],
+    ['CFG-CUL-JARDIN', 'CULTIVO', 'GENERALES', 'Jardín general', true]
   ];
   var existingIds = sheet.getLastRow() > 1
     ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getDisplayValues().map(function(row) { return row[0]; })

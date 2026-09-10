@@ -40,7 +40,7 @@ createApp({
     const alert = ref({ show: false, type: 'success', title: '', message: '' });
     const formHuerto = ref(AppUtils.newHuerto()), formCultural = ref(AppUtils.newCultural()), formFito = ref(AppUtils.newFitosanitario());
     const formProgramacion = ref({ ID_Programacion: '', ID_Huerto: '', Fecha_Programada: AppUtils.today(), Tipo_Labor: '', Descripcion: '', Horas_Estimadas: 1 });
-    const formConfiguracion = ref({ ID_Configuracion: '', Categoria: 'LABOR', Nombre: '', Activo: true });
+    const formConfiguracion = ref({ ID_Configuracion: '', Categoria: 'LABOR', Grupo: '', Nombre: '', Activo: true });
     const formCategoria = ref({ ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true });
     const agroView = ref('list'), agroTab = ref('general'), selectedAgroId = ref(''), extractedReview = ref(null), agroDirty = ref(false);
     const documentUpload = ref({ active: false, type: '', message: '' });
@@ -75,8 +75,8 @@ createApp({
         { id: 'ARBOLES_ARBUSTOS', nombre: 'Árboles y arbustos', icono: 'bi-tree-fill', nombres: ['Ligustro','Ficus','Palmera','Araucaria','Ciprés','Jacarandá','Magnolio','Liquidámbar','Plátano oriental'] }
       ];
       const opciones = configuraciones.value.filter(item => item.Categoria === 'CULTIVO'), asignadas = new Set(definiciones.flatMap(grupo => grupo.nombres));
-      const grupos = definiciones.map(grupo => ({ ...grupo, opciones: opciones.filter(item => grupo.nombres.includes(item.Nombre) && coincideBusquedaConfig(item)) }));
-      const otras = opciones.filter(item => !asignadas.has(item.Nombre) && coincideBusquedaConfig(item));
+      const grupos = definiciones.map(grupo => ({ ...grupo, opciones: opciones.filter(item => (item.Grupo === grupo.id || (!item.Grupo && grupo.nombres.includes(item.Nombre))) && coincideBusquedaConfig(item)) }));
+      const otras = opciones.filter(item => (!item.Grupo && !asignadas.has(item.Nombre) || item.Grupo === 'OTROS') && coincideBusquedaConfig(item));
       if (otras.length) grupos.push({ id: 'OTROS', nombre: 'Sin clasificar', icono: 'bi-inboxes', opciones: otras });
       categoriasPersonalizadas.value.forEach(nombre => grupos.push({ id: 'CUSTOM-' + nombre, nombre, icono: 'bi-tags', opciones: configuraciones.value.filter(item => item.Categoria === nombre && coincideBusquedaConfig(item)) }));
       return grupos.map(grupo => ({ ...grupo, cantidad: grupo.opciones.length }));
@@ -162,7 +162,7 @@ createApp({
     const nuevaCultural = () => { formCultural.value = AppUtils.newCultural(); openDrawer('cultural'); };
     const nuevoFitosanitario = () => { formFito.value = AppUtils.newFitosanitario(); openDrawer('fitosanitario'); };
     const nuevaProgramacion = () => { formProgramacion.value = { ID_Programacion: '', ID_Huerto: '', Fecha_Programada: serverToday.value, Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1 }; openDrawer('programacion'); };
-    const nuevaConfiguracion = () => { const grupo = gruposCultivo.value.find(item => item.id === configGrupoFilter.value); const categoria = configCategoriaFilter.value === 'CULTIVO' && grupo && String(grupo.id).indexOf('CUSTOM-') === 0 ? grupo.nombre : (configCategoriaFilter.value || 'LABOR'); formConfiguracion.value = { ID_Configuracion: '', Categoria: categoria, Nombre: '', Activo: true }; openDrawer('configuracion'); };
+    const nuevaConfiguracion = (categoriaSolicitada, grupoSolicitado) => { const grupo = gruposCultivo.value.find(item => item.id === (grupoSolicitado || configGrupoFilter.value)); const categoriaBase = typeof categoriaSolicitada === 'string' ? categoriaSolicitada : configCategoriaFilter.value; const categoria = categoriaBase === 'CULTIVO' && grupo && String(grupo.id).indexOf('CUSTOM-') === 0 ? grupo.nombre : (categoriaBase || 'LABOR'); formConfiguracion.value = { ID_Configuracion: '', Categoria: categoria, Grupo: grupo ? grupo.id : '', Nombre: '', Activo: true }; openDrawer('configuracion'); };
     const nuevaCategoria = () => { formCategoria.value = { ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true }; openDrawer('categoria'); };
     const getHuertoNombre = id => (huertos.value.find(x => x.ID_Huerto === id) || {}).Nombre_Cliente || id;
     const renderDashboard = () => {
@@ -212,7 +212,7 @@ createApp({
     const submitCultural = async () => { try { await saveOtherOption(formCultural, 'Tipo_Labor', 'LABOR', otroTipoCultural); await submit(formCultural.value.ID_Labor ? 'updateBitacoraCultural' : 'addBitacoraCultural', formCultural, AppUtils.newCultural.bind(AppUtils)); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } };
     const submitFitosanitario = async () => { try { const product = agroquimicoAplicacion.value; if (!product) throw new Error('Seleccione un agroquímico registrado.'); formFito.value.Producto_Aplicado = product.Nombre_Comercial; formFito.value.Agua_Total_L = calculoFito.value.water; formFito.value.Numero_Cargas = calculoFito.value.loads; formFito.value.Producto_Total = calculoFito.value.totalProduct; formFito.value.Dosis_Utilizada = formFito.value.Dosis_100L + ' ' + formFito.value.Unidad_Producto + '/100 L · Total ' + calculoFito.value.totalProduct + ' ' + formFito.value.Unidad_Producto; await submit(formFito.value.ID_Aplicacion ? 'updateBitacoraFitosanitaria' : 'addBitacoraFitosanitaria', formFito, AppUtils.newFitosanitario.bind(AppUtils)); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } };
     const submitProgramacion = async () => { try { await saveOtherOption(formProgramacion, 'Tipo_Labor', 'LABOR', otroTipoProgramacion); await submit('saveLaborProgramada', formProgramacion, () => ({ ID_Programacion: '', ID_Huerto: '', Fecha_Programada: AppUtils.today(), Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1 })); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } };
-    const submitConfiguracion = () => submit('saveConfiguracion', formConfiguracion, () => ({ ID_Configuracion: '', Categoria: 'LABOR', Nombre: '', Activo: true }));
+    const submitConfiguracion = () => submit('saveConfiguracion', formConfiguracion, () => ({ ID_Configuracion: '', Categoria: 'LABOR', Grupo: '', Nombre: '', Activo: true }));
     const submitCategoria = () => submit('saveConfiguracion', formCategoria, () => ({ ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true }));
     const nuevoAgroquimico = () => { formAgro.value = { ID_Agroquimico: '', Nombre_Comercial: '', Ingrediente_Activo: '', Concentracion: '', Formulacion: '', Tipo_Producto: 'Herbicida', Fabricante: '', Proveedor: '', Numero_Registro: '', Estado: 'Activo' }; selectedAgroId.value = ''; agroTab.value = 'general'; agroView.value = 'form'; extractedReview.value = null; agroDirty.value = false; documentUpload.value = { active: false, type: '', message: '' }; };
     const editarAgroquimico = record => { if (!record) return; selectedAgroId.value = record.ID_Agroquimico; formAgro.value = { ...record }; agroTab.value = 'general'; agroView.value = 'form'; extractedReview.value = null; agroDirty.value = false; documentUpload.value = { active: false, type: '', message: '' }; };
