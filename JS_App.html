@@ -190,7 +190,7 @@ createApp({
     const nuevaCultural = huertoId => { formCultural.value = { ...AppUtils.newCultural(), ID_Huerto: huertoId || '' }; openDrawer('cultural'); };
     const nuevoFitosanitario = huertoId => { formFito.value = { ...AppUtils.newFitosanitario(), ID_Huerto: huertoId || '' }; openDrawer('fitosanitario'); if (huertoId) seleccionarHuertoFito(); };
     const nuevaProgramacion = huertoId => { formProgramacion.value = { ID_Programacion: '', ID_Huerto: huertoId || '', Fecha_Programada: serverToday.value, Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1, Estado: 'Programada', Fecha_Realizacion: '' }; openDrawer('programacion'); };
-    const nuevaConfiguracion = categoria => { formConfiguracion.value = { ID_Configuracion: '', Categoria: categoria || 'LABOR', Nombre: '', Activo: true }; openDrawer('configuracion'); };
+    const nuevaConfiguracion = categoria => { formCategoria.value = {}; formConfiguracion.value = { ID_Configuracion: '', Categoria: categoria || 'LABOR', Nombre: '', Activo: true }; openDrawer('configuracion'); };
     const nuevaCategoria = () => { formCategoria.value = { ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true }; openDrawer('categoria'); };
     const nuevaBitacoraProyecto = () => { formBitacoraProyecto.value = { ID_Entrada: '', Fecha: serverToday.value, ID_Huerto: '', Categoria: 'General', Titulo: '', Detalle: '' }; openDrawer('bitacoraProyecto'); };
     const getHuertoNombre = id => (huertos.value.find(x => x.ID_Huerto === id) || {}).Nombre_Cliente || id;
@@ -276,7 +276,7 @@ createApp({
     const seleccionarHuertoFito = () => { formFito.value.Cultivos_Tratados = []; if (superficieMaximaFito.value && Number(formFito.value.Superficie_Tratada_m2) > superficieMaximaFito.value) formFito.value.Superficie_Tratada_m2 = superficieMaximaFito.value; actualizarLimiteSuperficieFito(); };
     const seleccionarUsoAplicacion = () => { const use = usoAplicacion.value; if (!use) return; formFito.value.Dosis_100L = Number(use.Dosis_Minima) || 0; formFito.value.Problema_Objetivo = use.Objetivo || formFito.value.Problema_Objetivo; formFito.value.Metodo_Aplicacion = use.Metodo_Aplicacion || formFito.value.Metodo_Aplicacion; if (use.Volumen_Agua_Min) formFito.value.Volumen_100m2_L = Number(use.Volumen_Agua_Min); formFito.value.Unidad_Producto = use.Unidad_Dosis.indexOf('kg') === 0 || use.Unidad_Dosis.indexOf('g/') === 0 ? (use.Unidad_Dosis.indexOf('kg') === 0 ? 'kg' : 'g') : (use.Unidad_Dosis.indexOf('L/') === 0 ? 'L' : 'ml'); };
     const editarProgramacion = record => { formProgramacion.value = { ...record, Estado: record.Estado || 'Programada', Fecha_Realizacion: record.Fecha_Realizacion || '' }; openDrawer('programacion'); };
-    const editarConfiguracion = record => { formConfiguracion.value = { ...record, Activo: record.Activo === true || record.Activo === 'TRUE' }; openDrawer('configuracion'); };
+    const editarConfiguracion = record => { formCategoria.value = {}; formConfiguracion.value = { ...record, Activo: record.Activo === true || record.Activo === 'TRUE' }; openDrawer('configuracion'); };
     const eliminarConfiguracion = async item => {
       if (!item || !(await confirmAction('Eliminar opción', 'Se eliminará "' + item.Nombre + '" del catálogo. Esta acción no se puede deshacer.'))) return;
       submitting.value = true;
