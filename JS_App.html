@@ -190,7 +190,7 @@ createApp({
     const nuevaCultural = huertoId => { formCultural.value = { ...AppUtils.newCultural(), ID_Huerto: huertoId || '' }; openDrawer('cultural'); };
     const nuevoFitosanitario = huertoId => { formFito.value = { ...AppUtils.newFitosanitario(), ID_Huerto: huertoId || '' }; openDrawer('fitosanitario'); if (huertoId) seleccionarHuertoFito(); };
     const nuevaProgramacion = huertoId => { formProgramacion.value = { ID_Programacion: '', ID_Huerto: huertoId || '', Fecha_Programada: serverToday.value, Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1, Estado: 'Programada', Fecha_Realizacion: '' }; openDrawer('programacion'); };
-    const nuevaConfiguracion = () => { formConfiguracion.value = { ID_Configuracion: '', Categoria: 'LABOR', Nombre: '', Activo: true }; openDrawer('configuracion'); };
+    const nuevaConfiguracion = categoria => { formConfiguracion.value = { ID_Configuracion: '', Categoria: categoria || 'LABOR', Nombre: '', Activo: true }; openDrawer('configuracion'); };
     const nuevaCategoria = () => { formCategoria.value = { ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true }; openDrawer('categoria'); };
     const nuevaBitacoraProyecto = () => { formBitacoraProyecto.value = { ID_Entrada: '', Fecha: serverToday.value, ID_Huerto: '', Categoria: 'General', Titulo: '', Detalle: '' }; openDrawer('bitacoraProyecto'); };
     const getHuertoNombre = id => (huertos.value.find(x => x.ID_Huerto === id) || {}).Nombre_Cliente || id;
