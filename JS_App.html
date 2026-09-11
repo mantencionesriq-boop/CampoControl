@@ -194,10 +194,10 @@ createApp({
       const huerto = { ...formHuerto.value, FichaAbierta: false };
       const huertoId = huerto.ID_Huerto;
       formHuerto.value = huerto;
-      if (accion === 'editar') editarHuerto(huerto);
-      else if (accion === 'cultural') nuevaCultural(huertoId);
-      else if (accion === 'fitosanitario') nuevoFitosanitario(huertoId);
-      else if (accion === 'programacion') nuevaProgramacion(huertoId);
+      if (accion === 'editar') { currentTab.value = 'huertos'; editarHuerto(huerto); }
+      else if (accion === 'cultural') { currentTab.value = 'cultural'; nuevaCultural(huertoId); }
+      else if (accion === 'fitosanitario') { currentTab.value = 'fitosanitario'; nuevoFitosanitario(huertoId); }
+      else if (accion === 'programacion') { currentTab.value = 'programacion'; nuevaProgramacion(huertoId); }
     };
     const nuevaConfiguracion = categoria => { formCategoria.value = {}; formConfiguracion.value = { ID_Configuracion: '', Categoria: categoria || 'LABOR', Nombre: '', Activo: true }; openDrawer('configuracion'); };
     const nuevaCategoria = () => { formCategoria.value = { ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true }; openDrawer('categoria'); };
