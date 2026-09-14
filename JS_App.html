@@ -204,7 +204,13 @@ createApp({
     };
     const seleccionarCultivoBusqueda = opcion => { formHuerto.value.CultivoSeleccionado = opcion.Nombre; cultivoSearchOpen.value = false; };
     const nuevaCultural = huertoId => { formCultural.value = { ...AppUtils.newCultural(), ID_Huerto: huertoId || '' }; openDrawer('cultural'); };
-    const nuevoFitosanitario = huertoId => { formFito.value = { ...AppUtils.newFitosanitario(), ID_Huerto: huertoId || '' }; openDrawer('fitosanitario'); if (huertoId) seleccionarHuertoFito(); };
+    const nuevoFitosanitario = (huertoId, aplicacionBase) => {
+      formFito.value = aplicacionBase
+        ? { ...AppUtils.newFitosanitario(), ...aplicacionBase, ID_Aplicacion: '', ID_Huerto: huertoId || aplicacionBase.ID_Huerto || '', Fecha: serverToday.value, Estado_Tarea: 'Programada', Fecha_Realizacion: '', Fecha_Creacion: '', Creado_Por: '', Cultivos_Tratados: getCultivos(aplicacionBase), Sectores_Aplicacion: String(aplicacionBase.Sectores_Aplicacion || '').split(' · ').filter(Boolean), Malezas_Objetivo: String(aplicacionBase.Malezas_Objetivo || '').split(' · ').filter(Boolean) }
+        : { ...AppUtils.newFitosanitario(), ID_Huerto: huertoId || '' };
+      openDrawer('fitosanitario');
+      if (formFito.value.ID_Huerto) actualizarLimiteSuperficieFito();
+    };
     const nuevaProgramacion = huertoId => { formProgramacion.value = { ID_Programacion: '', ID_Huerto: huertoId || '', Fecha_Programada: serverToday.value, Tipo_Labor: tiposLabor.value[0] ? tiposLabor.value[0].Nombre : '', Descripcion: '', Horas_Estimadas: 1, Estado: 'Programada', Fecha_Realizacion: '' }; openDrawer('programacion'); };
     const abrirAccionHuerto = accion => {
       const huerto = { ...formHuerto.value, FichaAbierta: false };
