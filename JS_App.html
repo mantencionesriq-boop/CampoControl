@@ -234,17 +234,9 @@ createApp({
       canvas.width = width; canvas.height = height; ctx.clearRect(0, 0, width, height);
       data.forEach((item, index) => { const x = 35 + index * (width / 3), barHeight = item[1] / max * 130; ctx.fillStyle = item[2]; ctx.fillRect(x, 165 - barHeight, 95, barHeight); ctx.fillStyle = '#212529'; ctx.font = '13px Segoe UI'; ctx.fillText(String(item[1]), x + 40, 155 - barHeight); ctx.fillText(item[0], x, 192); });
     };
-    const scrollToPageTop = () => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    };
     const openTab = tab => {
       currentTab.value = tab;
-      setTimeout(() => {
-        scrollToPageTop();
-        if (tab === 'panel') renderDashboard();
-      }, 0);
+      if (tab === 'panel') setTimeout(renderDashboard, 0);
     };
     const abrirDetallePanel = detalle => { panelDetail.value = detalle; };
     const cerrarDetallePanel = () => { panelDetail.value = ''; setTimeout(renderDashboard, 0); };
