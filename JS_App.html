@@ -27,6 +27,7 @@ createApp({
     }[currentTab.value]));
     const loading = ref(true);
     const submitting = ref(false);
+    let backgroundRefreshTimer = null;
     const activeDrawer = ref('');
     const panelDetail = ref('');
     const calendarioEstado = ref('TODAS');
@@ -165,7 +166,9 @@ createApp({
     const superficieActiva = computed(() => huertosPanelActivos.value.reduce((sum, x) => sum + (Number(x.Superficie_m2) || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 1 }));
     const tasaCumplimiento = computed(() => programacionesTemporada.value.length ? Math.round(laboresRealizadas.value / programacionesTemporada.value.length * 100) : 0);
 
-    const showAlert = (title, message, type = 'success') => Swal.fire({ title, text: String(message || ''), icon: type === 'danger' ? 'error' : type, confirmButtonText: 'Aceptar', confirmButtonColor: '#198754', customClass: { popup: 'campocontrol-swal' } });
+    const showAlert = (title, message, type = 'success') => type === 'success'
+      ? Swal.fire({ toast: true, position: 'top-end', title, text: String(message || ''), icon: 'success', showConfirmButton: false, timer: 2200, timerProgressBar: true, customClass: { popup: 'campocontrol-swal' } })
+      : Swal.fire({ title, text: String(message || ''), icon: type === 'danger' ? 'error' : type, confirmButtonText: 'Aceptar', confirmButtonColor: '#198754', customClass: { popup: 'campocontrol-swal' } });
     const confirmAction = (title, message, confirmText = 'Eliminar') => Swal.fire({ title, text: message, icon: 'warning', showCancelButton: true, confirmButtonText: confirmText, cancelButtonText: 'Cancelar', confirmButtonColor: '#dc3545', cancelButtonColor: '#64748b', reverseButtons: true, focusCancel: true, customClass: { popup: 'campocontrol-swal' } }).then(result => result.isConfirmed);
     const showProcessing = (title, message) => Swal.fire({ title, text: message || 'Espere un momento…', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: () => Swal.showLoading(), customClass: { popup: 'campocontrol-swal' } });
     function getEstadoCalendario(item) {
@@ -230,10 +233,14 @@ createApp({
       } catch (error) { showAlert('Error del servidor', error.message || error.toString(), 'danger'); }
       finally { if (!silent) loading.value = false; }
     };
+    const refreshSoon = () => {
+      clearTimeout(backgroundRefreshTimer);
+      backgroundRefreshTimer = setTimeout(() => { loadServerData(true); }, 500);
+    };
     const submit = async (method, form, reset) => {
       submitting.value = true;
       showProcessing('Guardando cambios', 'Validando y sincronizando con Google Sheets…');
-      try { const response = await ServerApi.call(method, form.value); if (!response.success) throw new Error(response.error); Swal.close(); showAlert('¡Éxito!', response.message); form.value = reset(); closeDrawer(); loadServerData(true); return true; }
+      try { const response = await ServerApi.call(method, form.value); if (!response.success) throw new Error(response.error); Swal.close(); showAlert('¡Éxito!', response.message); form.value = reset(); closeDrawer(); refreshSoon(); return true; }
       catch (error) { Swal.close(); showAlert('Error', error.message || error.toString(), 'danger'); }
       finally { submitting.value = false; }
     };
@@ -260,7 +267,7 @@ createApp({
     const marcarFichaAgroSucia = () => { agroDirty.value = true; };
     const cambiarAgroTab = tab => { if (submitting.value) return; if (!selectedAgroId.value && tab !== 'general') { showAlert('Guarde primero', 'Debe guardar la ficha antes de acceder a otras pestañas.', 'warning'); return; } if (agroDirty.value && tab !== 'general') { showAlert('Cambios sin guardar', 'Guarde la ficha antes de cambiar de pestaña.', 'warning'); return; } agroTab.value = tab; if (tab === 'usos') nuevoUsoAgroquimico(); };
     const volverAgroquimicos = () => { if (agroDirty.value) { showAlert('Cambios sin guardar', 'Guarde la ficha antes de volver al catálogo.', 'warning'); return; } agroView.value = 'list'; selectedAgroId.value = ''; extractedReview.value = null; };
-    const guardarAgroquimico = async () => { submitting.value = true; try { const response = await ServerApi.call('saveAgroquimico', formAgro.value); if (!response.success) throw new Error(response.error); selectedAgroId.value = response.id || formAgro.value.ID_Agroquimico; agroDirty.value = false; showAlert('Ficha guardada', response.message); await loadServerData(); if (selectedAgroId.value) editarAgroquimico(agroquimicos.value.find(x => x.ID_Agroquimico === selectedAgroId.value)); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
+    const guardarAgroquimico = async () => { submitting.value = true; try { const response = await ServerApi.call('saveAgroquimico', formAgro.value); if (!response.success) throw new Error(response.error); selectedAgroId.value = response.id || formAgro.value.ID_Agroquimico; agroDirty.value = false; showAlert('Ficha guardada', response.message); refreshSoon(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
     const eliminarAgroquimico = async product => {
       if (!product || !(await confirmAction('Eliminar agroquímico', 'Se eliminará "' + product.Nombre_Comercial + '" junto con sus usos, versiones y documentos. Esta acción no se puede deshacer.'))) return;
       submitting.value = true;
@@ -269,14 +276,14 @@ createApp({
         if (!response.success) throw new Error(response.error);
         agroDirty.value = false; agroView.value = 'list'; selectedAgroId.value = ''; extractedReview.value = null;
         showAlert('Agroquímico eliminado', response.message);
-        await loadServerData();
+        refreshSoon();
       } catch (error) { showAlert('No fue posible eliminar', error.message || error.toString(), 'danger'); }
       finally { submitting.value = false; }
     };
     const nuevoUsoAgroquimico = () => { formUso.value = { ID_Uso: '', ID_Agroquimico: selectedAgroId.value, Tipo_Aplicacion: 'Control químico de malezas', Tipo_Destino: 'Sector', Destino: '', Tipo_Objetivo: 'Malezas en general', Objetivo: '', Dosis_Minima: 0, Dosis_Maxima: 0, Unidad_Dosis: 'ml/100 L', Volumen_Agua_Min: '', Volumen_Agua_Max: '', Metodo_Aplicacion: 'Dirigida', Momento_Aplicacion: '', Carencia_Dias: 0, Reingreso_Horas: 0, Restricciones: '', Activo: true }; };
     const editarUsoAgroquimico = uso => { formUso.value = { ...uso, Activo: uso.Activo === true || uso.Activo === 'TRUE' }; };
-    const guardarUsoAgroquimico = async () => { submitting.value = true; try { formUso.value.ID_Agroquimico = selectedAgroId.value; const response = await ServerApi.call('saveAgroquimicoUso', formUso.value); if (!response.success) throw new Error(response.error); showAlert('Uso guardado', response.message); await loadServerData(); nuevoUsoAgroquimico(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
-    const guardarCatalogoFito = async (tipo) => { submitting.value = true; try { const isWeed = tipo === 'maleza', response = await ServerApi.call(isWeed ? 'saveMaleza' : 'saveSectorAplicacion', isWeed ? formMaleza.value : formSector.value); if (!response.success) throw new Error(response.error); if (isWeed) formMaleza.value = { Nombre_Comun: '', Nombre_Cientifico: '', Grupo: '', Ciclo: '', Activo: true }; else formSector.value = { Nombre: '', Descripcion: '', Activo: true }; showAlert('Catálogo actualizado', response.message); await loadServerData(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
+    const guardarUsoAgroquimico = async () => { submitting.value = true; try { formUso.value.ID_Agroquimico = selectedAgroId.value; const response = await ServerApi.call('saveAgroquimicoUso', formUso.value); if (!response.success) throw new Error(response.error); showAlert('Uso guardado', response.message); refreshSoon(); nuevoUsoAgroquimico(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
+    const guardarCatalogoFito = async (tipo) => { submitting.value = true; try { const isWeed = tipo === 'maleza', response = await ServerApi.call(isWeed ? 'saveMaleza' : 'saveSectorAplicacion', isWeed ? formMaleza.value : formSector.value); if (!response.success) throw new Error(response.error); if (isWeed) formMaleza.value = { Nombre_Comun: '', Nombre_Cientifico: '', Grupo: '', Ciclo: '', Activo: true }; else formSector.value = { Nombre: '', Descripcion: '', Activo: true }; showAlert('Catálogo actualizado', response.message); refreshSoon(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
     const cargarDocumentoAgro = event => { const input = event.target, file = input.files[0]; if (!file) return; const allowed = ['application/pdf','image/jpeg','image/png']; if (allowed.indexOf(file.type) === -1) { documentUpload.value = { active: true, type: 'danger', message: 'Formato no permitido. Use PDF, JPG o PNG.' }; input.value = ''; return; } if (file.size > 10 * 1024 * 1024) { documentUpload.value = { active: true, type: 'danger', message: 'El archivo supera el máximo de 10 MB.' }; input.value = ''; return; } documentUpload.value = { active: true, type: 'processing', message: 'Leyendo ' + file.name + '…' }; const reader = new FileReader(); reader.onerror = () => { documentUpload.value = { active: true, type: 'danger', message: 'El navegador no pudo leer el archivo.' }; input.value = ''; }; reader.onload = async () => { submitting.value = true; documentUpload.value = { active: true, type: 'processing', message: 'Cargando en Google Drive y extrayendo la información. Este proceso puede tardar hasta un minuto…' }; try { const response = await ServerApi.call('uploadAgroquimicoDocument', { ID_Agroquimico: selectedAgroId.value, Tipo_Documento: 'Ficha técnica', fileName: file.name, mimeType: file.type, base64: String(reader.result).split(',')[1] }); if (!response.success) throw new Error(response.error); extractedReview.value = response.extracted; documentUpload.value = { active: true, type: 'success', message: response.message + (response.warning ? ' ' + response.warning : '') }; showAlert('Documento procesado', response.message, response.warning ? 'warning' : 'success'); await loadServerData(); } catch (error) { const message = error.message || error.toString(); documentUpload.value = { active: true, type: 'danger', message: message }; showAlert('Error al cargar', message, 'danger'); } finally { submitting.value = false; input.value = ''; } }; reader.readAsDataURL(file); };
     const aplicarExtraccion = () => { if (!extractedReview.value) return; ['Nombre_Comercial','Ingrediente_Activo','Concentracion','Formulacion','Fabricante','Numero_Registro'].forEach(field => { if (extractedReview.value[field]) formAgro.value[field] = extractedReview.value[field]; }); agroDirty.value = true; agroTab.value = 'general'; showAlert('Datos propuestos', 'Revise y guarde la ficha para confirmar la información extraída.'); };
     const seleccionarAgroAplicacion = () => { const product = agroquimicoAplicacion.value; formFito.value.Producto_Aplicado = product ? product.Nombre_Comercial : ''; formFito.value.ID_Uso = ''; };
@@ -290,7 +297,7 @@ createApp({
       if (!item || !(await confirmAction('Eliminar opción', 'Se eliminará "' + item.Nombre + '" del catálogo. Esta acción no se puede deshacer.'))) return;
       submitting.value = true;
       showProcessing('Eliminando opción', 'Comprobando que no esté en uso…');
-      try { const response = await ServerApi.call('deleteConfiguracion', item.ID_Configuracion); if (!response.success) throw new Error(response.error); Swal.close(); showAlert('Opción eliminada', response.message); await loadServerData(); }
+      try { const response = await ServerApi.call('deleteConfiguracion', item.ID_Configuracion); if (!response.success) throw new Error(response.error); configuraciones.value = configuraciones.value.filter(record => record.ID_Configuracion !== item.ID_Configuracion); Swal.close(); showAlert('Opción eliminada', response.message); refreshSoon(); }
       catch (error) { Swal.close(); showAlert('No fue posible eliminar', error.message || error.toString(), 'danger'); }
       finally { submitting.value = false; }
     };
@@ -310,7 +317,7 @@ createApp({
       if (!(await confirmAction('Eliminar entrada', 'Se eliminará esta entrada de la bitácora. Esta acción no se puede deshacer.'))) return;
       submitting.value = true;
       showProcessing('Eliminando entrada');
-      try { const response = await ServerApi.call('deleteBitacoraProyecto', id); if (!response.success) throw new Error(response.error); Swal.close(); showAlert('Entrada eliminada', response.message); await loadServerData(); }
+      try { const response = await ServerApi.call('deleteBitacoraProyecto', id); if (!response.success) throw new Error(response.error); bitacoraProyecto.value = bitacoraProyecto.value.filter(record => record.ID_Entrada !== id); Swal.close(); showAlert('Entrada eliminada', response.message); refreshSoon(); }
       catch (error) { Swal.close(); showAlert('Error', error.message || error.toString(), 'danger'); }
       finally { submitting.value = false; }
     };
@@ -322,7 +329,7 @@ createApp({
         if (!response.success) throw new Error(response.error);
         Swal.close();
         showAlert('Labor eliminada', response.message);
-        await loadServerData();
+        refreshSoon();
       } catch (error) { Swal.close(); showAlert('Error', error.message || error.toString(), 'danger'); }
       finally { submitting.value = false; }
     };
@@ -337,8 +344,32 @@ createApp({
       const id = labor.origen === 'PROGRAMADA' ? labor.ID_Programacion : labor.origen === 'CULTURAL' ? labor.ID_Labor : labor.ID_Aplicacion;
       return eliminarLabor(method, id);
     };
-    const completarProgramacion = async (id, method = 'completeLaborProgramada') => { submitting.value = true; try { const response = await ServerApi.call(method, id); if (!response.success) throw new Error(response.error); await loadServerData(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
-    const completarCultural = async (id, method = 'completeBitacoraCultural') => { submitting.value = true; try { const response = await ServerApi.call(method, id); if (!response.success) throw new Error(response.error); await loadServerData(); } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); } finally { submitting.value = false; } };
+    const actualizarEstadoLocal = (items, idField, id, stateField, completed) => {
+      const state = completed ? 'Realizada' : 'Programada';
+      return items.value.map(item => String(item[idField]) === String(id) ? { ...item, [stateField]: state, Fecha_Realizacion: completed ? serverToday.value : '' } : item);
+    };
+    const completarProgramacion = async (id, method = 'completeLaborProgramada') => {
+      submitting.value = true;
+      try {
+        const response = await ServerApi.call(method, id);
+        if (!response.success) throw new Error(response.error);
+        laboresProgramadas.value = actualizarEstadoLocal(laboresProgramadas, 'ID_Programacion', id, 'Estado', !method.startsWith('reopen'));
+        refreshSoon();
+      } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); }
+      finally { submitting.value = false; }
+    };
+    const completarCultural = async (id, method = 'completeBitacoraCultural') => {
+      submitting.value = true;
+      try {
+        const response = await ServerApi.call(method, id);
+        if (!response.success) throw new Error(response.error);
+        const completed = !method.startsWith('reopen');
+        if (method.indexOf('Fitosanitaria') !== -1) fitosanitarioLogs.value = actualizarEstadoLocal(fitosanitarioLogs, 'ID_Aplicacion', id, 'Estado_Tarea', completed);
+        else culturalLogs.value = actualizarEstadoLocal(culturalLogs, 'ID_Labor', id, 'Estado', completed);
+        refreshSoon();
+      } catch (error) { showAlert('Error', error.message || error.toString(), 'danger'); }
+      finally { submitting.value = false; }
+    };
     watch([temporadaSeleccionada, panelHuertoId], () => { if (currentTab.value === 'panel') setTimeout(renderDashboard, 0); });
     watch(() => formFito.value.Superficie_Tratada_m2, value => { if (superficieMaximaFito.value && Number(value) > superficieMaximaFito.value) formFito.value.Superficie_Tratada_m2 = superficieMaximaFito.value; });
     onMounted(loadServerData);
