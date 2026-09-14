@@ -226,7 +226,8 @@ createApp({
       const huertoId = registro.ID_Huerto || formHuerto.value.ID_Huerto;
       returnToHuertoId.value = huertoId;
       formHuerto.value = { ...formHuerto.value, FichaAbierta: false };
-      if (origen === 'programacion') { openTab('programacion'); editarProgramacion(registro); }
+      if (origen === 'repetirFitosanitario') { openTab('fitosanitario'); nuevoFitosanitario(huertoId, registro); }
+      else if (origen === 'programacion') { openTab('programacion'); editarProgramacion(registro); }
       else if (origen === 'cultural') { openTab('cultural'); editarCultural(registro); }
       else if (origen === 'fitosanitario') { openTab('fitosanitario'); editarFitosanitario(registro); }
     };
