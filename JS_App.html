@@ -29,6 +29,7 @@ createApp({
     const submitting = ref(false);
     let backgroundRefreshTimer = null;
     const activeDrawer = ref('');
+    const returnToHuertoId = ref('');
     const panelDetail = ref('');
     const calendarioEstado = ref('TODAS');
     const calendarioTipo = ref('TODAS');
@@ -179,7 +180,16 @@ createApp({
     }
     const getCultivos = item => Array.isArray(item.Cultivos_Tratados) ? item.Cultivos_Tratados : String(item.Cultivos_Tratados || '').split(' · ').filter(Boolean);
     const openDrawer = name => { activeDrawer.value = name; };
-    const closeDrawer = () => { activeDrawer.value = ''; };
+    const closeDrawer = () => {
+      activeDrawer.value = '';
+      const huertoId = returnToHuertoId.value;
+      if (!huertoId) return;
+      const huerto = huertos.value.find(item => String(item.ID_Huerto) === String(huertoId));
+      returnToHuertoId.value = '';
+      if (!huerto) return;
+      currentTab.value = 'huertos';
+      formHuerto.value = { ...huerto, FichaAbierta: true, FiltroActividad: 'TODAS', FiltroEstado: 'TODOS' };
+    };
     const nuevoHuerto = () => { formHuerto.value = AppUtils.newHuerto(); openDrawer('huerto'); };
     const agregarCultivoHuerto = selectedName => {
       const name = String(selectedName || formHuerto.value.CultivoSeleccionado || '').trim();
@@ -197,10 +207,19 @@ createApp({
       const huerto = { ...formHuerto.value, FichaAbierta: false };
       const huertoId = huerto.ID_Huerto;
       formHuerto.value = huerto;
+      returnToHuertoId.value = huertoId;
       if (accion === 'editar') { currentTab.value = 'huertos'; editarHuerto(huerto); }
       else if (accion === 'cultural') { currentTab.value = 'cultural'; nuevaCultural(huertoId); }
       else if (accion === 'fitosanitario') { currentTab.value = 'fitosanitario'; nuevoFitosanitario(huertoId); }
       else if (accion === 'programacion') { currentTab.value = 'programacion'; nuevaProgramacion(huertoId); }
+    };
+    const abrirRegistroDesdeHuerto = (origen, registro) => {
+      const huertoId = registro.ID_Huerto || formHuerto.value.ID_Huerto;
+      returnToHuertoId.value = huertoId;
+      formHuerto.value = { ...formHuerto.value, FichaAbierta: false };
+      if (origen === 'programacion') { currentTab.value = 'programacion'; editarProgramacion(registro); }
+      else if (origen === 'cultural') { currentTab.value = 'cultural'; editarCultural(registro); }
+      else if (origen === 'fitosanitario') { currentTab.value = 'fitosanitario'; editarFitosanitario(registro); }
     };
     const nuevaConfiguracion = categoria => { formCategoria.value = {}; formConfiguracion.value = { ID_Configuracion: '', Categoria: categoria || 'LABOR', Nombre: '', Activo: true }; openDrawer('configuracion'); };
     const nuevaCategoria = () => { formCategoria.value = { ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true }; openDrawer('categoria'); };
@@ -373,6 +392,6 @@ createApp({
     watch([temporadaSeleccionada, panelHuertoId], () => { if (currentTab.value === 'panel') setTimeout(renderDashboard, 0); });
     watch(() => formFito.value.Superficie_Tratada_m2, value => { if (superficieMaximaFito.value && Number(value) > superficieMaximaFito.value) formFito.value.Superficie_Tratada_m2 = superficieMaximaFito.value; });
     onMounted(loadServerData);
-    return { agroView, agroTab, selectedAgroId, extractedReview, documentUpload, agroDirty, formAgro, formUso, formMaleza, formSector, filtroAgro, agroquimicos, agroquimicosFiltrados, agroquimicosVersiones, agroquimicosUsos, agroquimicosDocumentos, malezas, sectoresAplicacion, agroquimicosActivos, ingredientesRegistrados, formulacionesRegistradas, formulacionesSAG, fabricantesRegistrados, proveedoresRegistrados, selectedAgro, usosAgroSeleccionado, documentosAgroSeleccionado, agroquimicoAplicacion, usosAplicacion, usoAplicacion, dosisFueraRango, currentTab, navigation, pageMeta, loading, submitting, temporadaSeleccionada, temporadasDisponibles, temporadaLabel, activeDrawer, panelDetail, panelDetailTitle, panelDetalleLabores, panelHuertoId, calendarioEstado, calendarioTipo, calendarioHuerto, fitoCultivoFilter, configCategoriaFilter, configSearch, huertos, huertoCultivos, bitacoraProyecto, bitacoraProyectoOrdenada, categoriasBitacoraProyecto, cultivosDelHuerto, culturalLogs, culturalesTemporada, culturalHistorial, fitosanitarioLogs, fitosanitariosTemporada, fitosanitarioFiltrados, calculoFito, insumos, configuraciones, configuracionesFiltradas, categoriasPersonalizadas, categoriasConfiguracion, laboresProgramadas, programacionesTemporada, calendarioLabores, tiposCalendario, formHuerto, formCultural, formFito, formProgramacion, formConfiguracion, formCategoria, formBitacoraProyecto, otroTipoCultural, otroProductoFito, otroTipoProgramacion, tiposLabor, productosAplicados, cultivosDisponibles, gruposCultivos, opcionesCultivosPorGrupo, opcionesCultivosDisponibles, laboresRealizadas, laboresPendientes, fertilizacionesRealizadas, huertosPanelActivos, huertosActivos, totalHorasCulturales, superficieActiva, tasaCumplimiento, alert, nuevoAgroquimico, editarAgroquimico, cargarAgroExistente, marcarFichaAgroSucia, cambiarAgroTab, volverAgroquimicos, guardarAgroquimico, eliminarAgroquimico, nuevoUsoAgroquimico, editarUsoAgroquimico, guardarUsoAgroquimico, guardarCatalogoFito, cargarDocumentoAgro, aplicarExtraccion, seleccionarAgroAplicacion, seleccionarUsoAplicacion, seleccionarHuertoCultural, seleccionarHuertoFito, getHuertoNombre, getCultivos, loadServerData, openTab, abrirDetallePanel, cerrarDetallePanel, openDrawer, closeDrawer, nuevoHuerto, agregarCultivoHuerto, nuevaCultural, nuevoFitosanitario, nuevaProgramacion, abrirAccionHuerto, nuevaConfiguracion, nuevaCategoria, nuevaBitacoraProyecto, submitHuerto, submitCultural, submitFitosanitario, submitProgramacion, submitConfiguracion, submitCategoria, submitBitacoraProyecto, editarProgramacion, editarConfiguracion, editarHuerto, editarCultural, editarFitosanitario, editarBitacoraProyecto, editarLaborCalendario, eliminarCultural, eliminarFitosanitario, eliminarBitacoraProyecto, eliminarConfiguracion, eliminarLaborCalendario, completarProgramacion, completarCultural };
+    return { agroView, agroTab, selectedAgroId, extractedReview, documentUpload, agroDirty, formAgro, formUso, formMaleza, formSector, filtroAgro, agroquimicos, agroquimicosFiltrados, agroquimicosVersiones, agroquimicosUsos, agroquimicosDocumentos, malezas, sectoresAplicacion, agroquimicosActivos, ingredientesRegistrados, formulacionesRegistradas, formulacionesSAG, fabricantesRegistrados, proveedoresRegistrados, selectedAgro, usosAgroSeleccionado, documentosAgroSeleccionado, agroquimicoAplicacion, usosAplicacion, usoAplicacion, dosisFueraRango, currentTab, navigation, pageMeta, loading, submitting, temporadaSeleccionada, temporadasDisponibles, temporadaLabel, activeDrawer, panelDetail, panelDetailTitle, panelDetalleLabores, panelHuertoId, calendarioEstado, calendarioTipo, calendarioHuerto, fitoCultivoFilter, configCategoriaFilter, configSearch, huertos, huertoCultivos, bitacoraProyecto, bitacoraProyectoOrdenada, categoriasBitacoraProyecto, cultivosDelHuerto, culturalLogs, culturalesTemporada, culturalHistorial, fitosanitarioLogs, fitosanitariosTemporada, fitosanitarioFiltrados, calculoFito, insumos, configuraciones, configuracionesFiltradas, categoriasPersonalizadas, categoriasConfiguracion, laboresProgramadas, programacionesTemporada, calendarioLabores, tiposCalendario, formHuerto, formCultural, formFito, formProgramacion, formConfiguracion, formCategoria, formBitacoraProyecto, otroTipoCultural, otroProductoFito, otroTipoProgramacion, tiposLabor, productosAplicados, cultivosDisponibles, gruposCultivos, opcionesCultivosPorGrupo, opcionesCultivosDisponibles, laboresRealizadas, laboresPendientes, fertilizacionesRealizadas, huertosPanelActivos, huertosActivos, totalHorasCulturales, superficieActiva, tasaCumplimiento, alert, nuevoAgroquimico, editarAgroquimico, cargarAgroExistente, marcarFichaAgroSucia, cambiarAgroTab, volverAgroquimicos, guardarAgroquimico, eliminarAgroquimico, nuevoUsoAgroquimico, editarUsoAgroquimico, guardarUsoAgroquimico, guardarCatalogoFito, cargarDocumentoAgro, aplicarExtraccion, seleccionarAgroAplicacion, seleccionarUsoAplicacion, seleccionarHuertoCultural, seleccionarHuertoFito, getHuertoNombre, getCultivos, loadServerData, openTab, abrirDetallePanel, cerrarDetallePanel, openDrawer, closeDrawer, nuevoHuerto, agregarCultivoHuerto, nuevaCultural, nuevoFitosanitario, nuevaProgramacion, abrirAccionHuerto, abrirRegistroDesdeHuerto, nuevaConfiguracion, nuevaCategoria, nuevaBitacoraProyecto, submitHuerto, submitCultural, submitFitosanitario, submitProgramacion, submitConfiguracion, submitCategoria, submitBitacoraProyecto, editarProgramacion, editarConfiguracion, editarHuerto, editarCultural, editarFitosanitario, editarBitacoraProyecto, editarLaborCalendario, eliminarCultural, eliminarFitosanitario, eliminarBitacoraProyecto, eliminarConfiguracion, eliminarLaborCalendario, completarProgramacion, completarCultural };
   }
 }).mount('#app');
