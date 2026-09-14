@@ -259,7 +259,7 @@ createApp({
       try {
         const response = await ServerApi.call('getInitialData');
         if (!response.success) throw new Error(response.error);
-        huertos.value = (response.huertos || []).map(item => ({ ...item, Hoy: response.today || AppUtils.today() })); huertoCultivos.value = response.huertoCultivos || []; bitacoraProyecto.value = response.bitacoraProyecto || []; culturalLogs.value = response.culturalLogs; fitosanitarioLogs.value = response.fitosanitarioLogs; insumos.value = response.insumos;
+        huertos.value = (response.huertos || []).map(item => ({ ...item, Hoy: '9999-12-31' })); huertoCultivos.value = response.huertoCultivos || []; bitacoraProyecto.value = response.bitacoraProyecto || []; culturalLogs.value = response.culturalLogs; fitosanitarioLogs.value = response.fitosanitarioLogs; insumos.value = response.insumos;
         configuraciones.value = response.configuraciones; laboresProgramadas.value = response.laboresProgramadas;
         agroquimicos.value = response.agroquimicos || []; agroquimicosVersiones.value = response.agroquimicosVersiones || []; agroquimicosUsos.value = response.agroquimicosUsos || []; agroquimicosDocumentos.value = response.agroquimicosDocumentos || []; malezas.value = response.malezas || []; sectoresAplicacion.value = response.sectoresAplicacion || [];
         serverToday.value = response.today || AppUtils.today();
@@ -338,7 +338,7 @@ createApp({
       finally { submitting.value = false; }
     };
     const editarHuerto = record => { formHuerto.value = { ...record, CultivoSeleccionado: '', Cultivos: huertoCultivos.value.filter(cultivo => String(cultivo.ID_Huerto) === String(record.ID_Huerto)).map(cultivo => ({ ...cultivo })) }; openDrawer('huerto'); };
-    const editarCultural = record => { formCultural.value = { ...record }; openDrawer('cultural'); };
+    const editarCultural = record => { formCultural.value = { ...record, Estado: record.Estado || 'Programada', Fecha_Realizacion: record.Fecha_Realizacion || '' }; openDrawer('cultural'); };
     const editarFitosanitario = record => { formFito.value = { ...AppUtils.newFitosanitario(), ...record, Cultivos_Tratados: getCultivos(record), Sectores_Aplicacion: String(record.Sectores_Aplicacion || '').split(' · ').filter(Boolean), Malezas_Objetivo: String(record.Malezas_Objetivo || '').split(' · ').filter(Boolean) }; openDrawer('fitosanitario'); actualizarLimiteSuperficieFito(); };
     const editarBitacoraProyecto = record => { formBitacoraProyecto.value = { ...record, ID_Huerto: record.ID_Huerto || '', Categoria: record.Categoria || 'General' }; openDrawer('bitacoraProyecto'); };
     const eliminarCultural = async id => {
