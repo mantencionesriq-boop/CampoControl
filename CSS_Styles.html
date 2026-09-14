@@ -1,7 +1,8 @@
 <style>
   :root { --cc-navy:#0f172a; --cc-navy-2:#172033; --cc-green:#16a36a; --cc-green-dark:#0b7a4c; --cc-bg:#f3f5f8; --cc-border:#e3e8ef; --cc-text:#172033; --cc-muted:#6b7585; --cc-radius:10px; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--cc-bg); color:var(--cc-text); font-family:Inter,"Segoe UI",Arial,sans-serif; font-size:13px; }
+  html { scrollbar-gutter:stable; }
+  body { margin:0; min-width:320px; overflow-y:scroll; background:var(--cc-bg); color:var(--cc-text); font-family:Inter,"Segoe UI",Arial,sans-serif; font-size:13px; }
   button,input,select,textarea { font:inherit; } [v-cloak] { display:none; }
   .app-shell { min-height:100vh; display:grid; grid-template-columns:230px minmax(0,1fr); }
   .app-sidebar { position:sticky; top:0; height:100vh; padding:18px 12px; background:var(--cc-navy); color:#fff; display:flex; flex-direction:column; z-index:20; }
@@ -15,7 +16,7 @@
   .app-workspace { min-width:0; } .topbar { min-height:66px; padding:12px 22px; background:#fff; border-bottom:1px solid var(--cc-border); display:flex; align-items:center; justify-content:space-between; gap:16px; }
   .topbar-actions { display:flex; align-items:center; gap:10px; } .season-control { display:grid; gap:2px; } .season-control span { color:var(--cc-muted); font-size:8px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; } .season-control select { min-width:168px; height:32px; padding:0 28px 0 9px; border:1px solid #d9e0e9; border-radius:7px; background:#fff; color:var(--cc-text); font-size:11px; font-weight:700; }
   .page-eyebrow { color:var(--cc-green-dark); font-size:9px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; } .page-title { margin:2px 0 0; font-size:18px; line-height:1.2; font-weight:750; } .page-subtitle { margin:2px 0 0; color:var(--cc-muted); font-size:11px; }
-  .main-content { padding:18px 22px 28px; max-width:1600px; margin:0 auto; }
+  .main-content { min-height:calc(100vh - 66px); padding:18px 22px 28px; max-width:1600px; margin:0 auto; }
   .btn { border-radius:7px; font-size:11px; font-weight:700; padding:.46rem .72rem; } .btn-success,.bg-success { background-color:var(--cc-green)!important; border-color:var(--cc-green)!important; } .btn-success:hover { background-color:var(--cc-green-dark)!important; border-color:var(--cc-green-dark)!important; } .text-success { color:var(--cc-green-dark)!important; }
   .form-label { margin-bottom:4px; color:#435064; font-size:10px!important; text-transform:uppercase; letter-spacing:.035em; } .form-control,.form-select { min-height:34px; border-color:#d9e0e9; border-radius:7px; font-size:12px; padding:.38rem .58rem; box-shadow:none!important; } textarea.form-control { min-height:70px; }
   .form-control:focus,.form-select:focus { border-color:var(--cc-green); box-shadow:0 0 0 3px rgba(22,163,106,.1)!important; } .mb-3 { margin-bottom:.78rem!important; }
