@@ -187,7 +187,7 @@ createApp({
       const huerto = huertos.value.find(item => String(item.ID_Huerto) === String(huertoId));
       returnToHuertoId.value = '';
       if (!huerto) return;
-      currentTab.value = 'huertos';
+      openTab('huertos');
       formHuerto.value = { ...huerto, FichaAbierta: true, FiltroActividad: 'TODAS', FiltroEstado: 'TODOS' };
     };
     const nuevoHuerto = () => { formHuerto.value = AppUtils.newHuerto(); openDrawer('huerto'); };
@@ -208,18 +208,18 @@ createApp({
       const huertoId = huerto.ID_Huerto;
       formHuerto.value = huerto;
       returnToHuertoId.value = huertoId;
-      if (accion === 'editar') { currentTab.value = 'huertos'; editarHuerto(huerto); }
-      else if (accion === 'cultural') { currentTab.value = 'cultural'; nuevaCultural(huertoId); }
-      else if (accion === 'fitosanitario') { currentTab.value = 'fitosanitario'; nuevoFitosanitario(huertoId); }
-      else if (accion === 'programacion') { currentTab.value = 'programacion'; nuevaProgramacion(huertoId); }
+      if (accion === 'editar') { openTab('huertos'); editarHuerto(huerto); }
+      else if (accion === 'cultural') { openTab('cultural'); nuevaCultural(huertoId); }
+      else if (accion === 'fitosanitario') { openTab('fitosanitario'); nuevoFitosanitario(huertoId); }
+      else if (accion === 'programacion') { openTab('programacion'); nuevaProgramacion(huertoId); }
     };
     const abrirRegistroDesdeHuerto = (origen, registro) => {
       const huertoId = registro.ID_Huerto || formHuerto.value.ID_Huerto;
       returnToHuertoId.value = huertoId;
       formHuerto.value = { ...formHuerto.value, FichaAbierta: false };
-      if (origen === 'programacion') { currentTab.value = 'programacion'; editarProgramacion(registro); }
-      else if (origen === 'cultural') { currentTab.value = 'cultural'; editarCultural(registro); }
-      else if (origen === 'fitosanitario') { currentTab.value = 'fitosanitario'; editarFitosanitario(registro); }
+      if (origen === 'programacion') { openTab('programacion'); editarProgramacion(registro); }
+      else if (origen === 'cultural') { openTab('cultural'); editarCultural(registro); }
+      else if (origen === 'fitosanitario') { openTab('fitosanitario'); editarFitosanitario(registro); }
     };
     const nuevaConfiguracion = categoria => { formCategoria.value = {}; formConfiguracion.value = { ID_Configuracion: '', Categoria: categoria || 'LABOR', Nombre: '', Activo: true }; openDrawer('configuracion'); };
     const nuevaCategoria = () => { formCategoria.value = { ID_Configuracion: '', Categoria: 'CATEGORIA', Nombre: '', Activo: true }; openDrawer('categoria'); };
@@ -234,7 +234,18 @@ createApp({
       canvas.width = width; canvas.height = height; ctx.clearRect(0, 0, width, height);
       data.forEach((item, index) => { const x = 35 + index * (width / 3), barHeight = item[1] / max * 130; ctx.fillStyle = item[2]; ctx.fillRect(x, 165 - barHeight, 95, barHeight); ctx.fillStyle = '#212529'; ctx.font = '13px Segoe UI'; ctx.fillText(String(item[1]), x + 40, 155 - barHeight); ctx.fillText(item[0], x, 192); });
     };
-    const openTab = tab => { currentTab.value = tab; if (tab === 'panel') setTimeout(renderDashboard, 0); };
+    const scrollToPageTop = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    const openTab = tab => {
+      currentTab.value = tab;
+      setTimeout(() => {
+        scrollToPageTop();
+        if (tab === 'panel') renderDashboard();
+      }, 0);
+    };
     const abrirDetallePanel = detalle => { panelDetail.value = detalle; };
     const cerrarDetallePanel = () => { panelDetail.value = ''; setTimeout(renderDashboard, 0); };
     const loadServerData = async (silent = false) => {
